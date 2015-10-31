@@ -8,13 +8,14 @@ import (
 
 // 预读接口
 // 不是线程安全的！
+// 允许多次多层打开关闭预读。
 type PreReader interface {
 	io.Reader
 
 	// 开启一层预读
 	NewPre() error
 	// 关闭一层预读
-	// 不会移动当前读取 offset 。
+	// 不会移动当前 offset 。
 	// 最后一层预读也被关闭并数据读取完毕时将清空缓冲区。
 	ClosePre() error
 	//复位预读偏移
@@ -43,12 +44,16 @@ func NewPreReader(r io.Reader) PreReader {
 
 func (pr *preRead) NewPre() (err error) {
 	if len(pr.po) == 0 {
-		//TODO:小心上次关闭后还未读取完缓冲区的情况。
-		pr.ms = memstream.NewMemStream()
-		pr.tee = io.TeeReader(pr.r, pr.ms)
-		pr.multi = io.MultiReader(pr.ms, pr.tee)
+		if pr.ms == nil {
+			pr.ms = memstream.NewMemStream()
+			pr.tee = io.TeeReader(pr.r, pr.ms)
+			pr.multi = io.MultiReader(pr.ms, pr.tee)
+		} else {
+			if err := pr.ms.DeleteRead(); err != nil {
+				return errors.New("DeleteRead")
+			}
+		}
 	}
-
 	offset, err := pr.ms.Seek(0, 1)
 	if err != nil {
 		return errors.New("[PeekReader] Internal error 2")
@@ -80,15 +85,13 @@ func (pr *preRead) ResetPreOffset() error {
 }
 
 func (pr *preRead) Read(p []byte) (n int, err error) {
-	// 读到结尾清空缓冲区
-
-	/*
-		if len(pr.po) == 0 {
-			// 释放缓冲区
-			pr.ms.Close()
-			pr.ms = nil
-			pr.tee = nil
-			pr.multi = pr.r
-		}*/
+	if pr.ms != nil && len(pr.po) == 0 && pr.ms.Len() == 0 {
+		// 预读已关闭 并且 不存在预读数据
+		// 清空缓冲区
+		pr.ms.Close()
+		pr.ms = nil
+		pr.tee = nil
+		pr.multi = pr.r
+	}
 	return pr.multi.Read(p)
 }

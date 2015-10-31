@@ -129,12 +129,12 @@ func Test(t *testing.T) {
 	}
 
 	// 读测试
-	b = make([]byte, 3)
-	if n, err := p.Read(b); n != 3 || err != nil {
+	b = make([]byte, 6)
+	if n, err := p.Read(b); n != 6 || err != nil {
 		t.Error("61-read")
 	}
-	if bytes.Equal(b, []byte{3, 4, 5}) != true {
-		t.Error("63-read")
+	if bytes.Equal(b[:6], []byte{3, 4, 5, 6, 7, 8}) != true {
+		t.Error("63-read", b)
 	}
 	if len(pp.po) != 1 || pp.po[0] != 0 {
 		t.Error("67-NewPre", pp.po)
@@ -149,6 +149,7 @@ func Test(t *testing.T) {
 	}
 
 	//复位预读后再次读测试
+	b = make([]byte, 3)
 	if n, err := p.Read(b); n != 3 || err != nil {
 		t.Error("83-read")
 	}
@@ -165,15 +166,49 @@ func Test(t *testing.T) {
 	}
 
 	// 读测试
-	b = make([]byte, 10)
-	if n, err := p.Read(b); n != 4 || err != nil {
+	b = make([]byte, 1)
+	if n, err := p.Read(b); n != 1 || err != nil {
 		t.Error("31-read", n)
 	}
-	if bytes.Equal(b[:4], []byte{6, 7, 8, 9}) != true {
+	if bytes.Equal(b[:1], []byte{6}) != true {
 		t.Error("33-read", b)
 	}
 	if len(pp.po) != 0 {
 		t.Error("37-NewPre")
+	}
+
+	// 再次开启预读
+	if err := p.NewPre(); err != nil {
+		t.Error("newpre")
+	}
+
+	// 读测试
+	b = make([]byte, 3)
+	if n, err := p.Read(b); n != 3 || err != nil {
+		t.Error("31-read", n)
+	}
+	if bytes.Equal(b[:3], []byte{7, 8, 9}) != true {
+		t.Error("33-read", b)
+	}
+	if len(pp.po) != 1 || pp.po[0] == 7 {
+		t.Error("37-NewPre")
+	}
+
+	//复位预读
+	if p.ResetPreOffset() != nil {
+		t.Error("69-reset")
+	}
+	if len(pp.po) != 1 || pp.po[0] != 0 {
+		t.Error("71-NewPre", pp.po)
+	}
+
+	//复位预读后再次读测试
+	b = make([]byte, 10)
+	if n, err := p.Read(b); n != 3 || err != nil {
+		t.Error("83-read")
+	}
+	if bytes.Equal(b[:3], []byte{7, 8, 9}) != true {
+		t.Error("75-read", b)
 	}
 
 	// 读结尾
