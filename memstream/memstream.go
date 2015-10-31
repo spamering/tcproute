@@ -16,8 +16,12 @@ type MemStream interface {
 	io.Writer
 	io.Seeker
 	io.Closer
+	// Len 剩余可读内容大小
 	Len() int
+	// 总数据大小
 	Size() int64
+	// 删除已读数据
+	DeleteRead() error
 }
 
 type memStream struct {
@@ -91,7 +95,7 @@ func (m *memStream) Seek(offset int64, whence int) (int64, error) {
 	case 1:
 		no = m.o
 	case 2:
-		no = m.Size() - 1
+		no = m.Size()
 	default:
 		return 0, errWhence
 	}
@@ -110,6 +114,12 @@ func (m *memStream) Seek(offset int64, whence int) (int64, error) {
 func (m *memStream) Close() error {
 	//TODO: 以后为 []byte 使用 sync.pool
 	m.d = make([]byte, 0, 0)
+	m.o = 0
+	return nil
+}
+
+func (m *memStream) DeleteRead() error {
+	m.d = m.d[m.o:]
 	m.o = 0
 	return nil
 }

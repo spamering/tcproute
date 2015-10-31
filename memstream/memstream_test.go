@@ -70,4 +70,29 @@ func Test(t *testing.T) {
 	if bytes.Equal(ms.d[n64:], ms2.d) != true {
 		t.Error("write to2")
 	}
+
+	// 测试删除已读数据功能
+	m = NewMemStream()
+	ms, ok = m.(*memStream)
+	if ok != true {
+		t.Error("type")
+	}
+
+	m.Write([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+
+	if n3, err := m.Seek(0, 0); n3 != 0 || err != nil {
+		t.Error("seek")
+	}
+
+	b = make([]byte, 5)
+	if n3, err := m.Read(b); n3 != 5 || err != nil {
+		t.Error("read")
+	}
+	if err := m.DeleteRead(); err != nil {
+		t.Error("del read")
+	}
+	if ms.o != 0 || bytes.Equal(ms.d, []byte{5, 6, 7, 8, 9}) != true {
+		t.Error("del read err", ms.o, ms.d)
+	}
+
 }
