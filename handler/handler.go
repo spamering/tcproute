@@ -8,22 +8,11 @@ type Conn interface {
 	reader() io.Reader
 	writer() io.Writer
 	closer() io.Closer
-
-	// 重置预读
-	// 开启一层预读
-	// 关闭一层预读
 }
 
-type PeekConn interface {
-	Conn
-
-	// 开启一层预读
-	NewPeek()
-	// 关闭一层预读
-	ClosePeek()
-	//复位预读偏移
-	ResetPeekOffset()
+type HContext interface {
 }
+
 
 // NoHandle 无法处理的协议类型
 // 尝试通过 New 对连接创建 Handler 时，如果协议不匹配无法处理，那么就返回这个错误。
