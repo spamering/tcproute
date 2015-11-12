@@ -1,4 +1,4 @@
-package upstream
+package main
 
 type UpStream interface {
 

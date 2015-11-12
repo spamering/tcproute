@@ -9,11 +9,18 @@ import (
 func main() {
 	defer glog.Flush()
 
-	os.Setenv("GLOG_logtostderr","1")
-	os.Setenv("GLOG_stderrthreshold","0")
+	os.Setenv("GLOG_logtostderr", "1")
+	os.Setenv("GLOG_stderrthreshold", "0")
 
 	var srv Server
-	srv.Addr=":7070"
+	srv.Addr = ":7070"
+
+	h := NewSwitchHandlerNewer()
+
+	hs:=NewSocksHandlerNewer()
+	h.AppendHandlerNewer(hs)
+
+	srv.hNewer = h
 	srv.ListAndServe()
 }
 

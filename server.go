@@ -11,34 +11,12 @@ import (
 )
 
 type Server struct {
-	Addr           string        // TCP address to listen on, ":http" if empty
-	Handlers       []Newer       // handler to invoke, http.DefaultServeMux if nil
-	ReadTimeout    time.Duration // maximum duration before timing out read of the request
-	WriteTimeout   time.Duration // maximum duration before timing out write of the response
-	MaxHeaderBytes int           // maximum size of request headers, DefaultMaxHeaderBytes if 0
-	ln             net.Listener
-}
-type liveSwitchReader struct {
-	sync.Mutex
-	r io.Reader
-}
-
-type conn struct {
-	Server     *Server
-	Rwc        net.Conn          // 原始链接
-	remoteAddr net.Addr          //远端地址
-	w          io.Writer         //写
-	sr         io.Reader
-	rb         *bytes.Buffer     // 重置流缓冲区
-	tr         *io.Reader        //TeeReader  读，同时写重置缓冲区
-	mr         *io.Reader        //MultiReader 重置缓冲区+标准读
-	lr         *io.LimitedReader //
-	br         *bufio.Reader     // 缓冲读
-	bw         *bufio.Writer     //缓冲写
-
-	buf        *bufio.ReadWriter // buffered(lr,rwc), reading from bufio->limitReader->sr->rwc
-
-
+	Addr   string       // TCP address to listen on, ":http" if empty
+	hNewer HandlerNewer //
+						//	ReadTimeout    time.Duration // maximum duration before timing out read of the request
+						//	WriteTimeout   time.Duration // maximum duration before timing out write of the response
+						//	MaxHeaderBytes int           // maximum size of request headers, DefaultMaxHeaderBytes if 0
+	ln     net.Listener
 }
 
 func (srv *Server) ListAndServe() {
@@ -79,31 +57,29 @@ func (srv *Server) Server() {
 			return e
 		}
 		tempDelay = 0
-		c, err := srv.newConn(rw)
-		if err != nil {
-			continue
-		}
-		go c.handle()
+
+		go srv.handlerConn(rw)
 	}
 }
 
-func (srv *Server) newConn(rw net.Conn) (c *Conn, err error) {
-
-
-	return c, nil
-}
-
-// server 单个连接处理函数
-func (c *Conn) handle() {
-	server := c.Server
-	handlers := server.Handlers
-
-	for _, v := range handlers {
-		h, e := v.New(c)
-		if e != nil {
-			continue
+func (srv *Server) handlerConn(conn net.Conn) {
+	defer func() {
+		if err := recover(); err != nil {
+			glog.Error("work failed:", err)
 		}
-		glog.Infof("[%v]收到 %v 的请求。", h.String(), c.remoteAddr.String())
-		h.Handle()
+	}()
+	// 是这里调用关闭还是 Handler() 负责？
+	defer conn.Close()
+
+	if tcpConn, ok := conn.(*net.TCPConn); ok == true {
+		// 设置关闭连接时最多等待时间
+		tcpConn.SetLinger(5)
 	}
+
+	h, _, _ := srv.hNewer.New(conn)
+	if h == nil {
+		glog.Warning("未识别连接协议，远端地址：%v，近端地址：%v。", conn.RemoteAddr(), conn.LocalAddr())
+		return
+	}
+	h.Handle()
 }
