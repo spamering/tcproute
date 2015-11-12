@@ -2,6 +2,7 @@ package main
 import (
 	"net"
 	"github.com/gamexg/preRead"
+	"fmt"
 )
 
 // handler 切换器
@@ -27,9 +28,12 @@ func (sh *switchHandlerNewer)New(conn net.Conn) (h Handler, rePre bool, err erro
 
 	// 预先读一次数据
 	b := make([]byte, 4096)
-	preConn.Read(b)
+	if n, err := preConn.Read(b); err != nil {
+		b = b[:n]
+	} else {
+		b = b[0:0]
+	}
 	preConn.ResetPreOffset()
-	b = nil
 
 	for _, hn := range sh.handlerNewers {
 		if h, reset, _ := hn.New(preConn); h != nil {
@@ -41,5 +45,6 @@ func (sh *switchHandlerNewer)New(conn net.Conn) (h Handler, rePre bool, err erro
 			preConn.ResetPreOffset()
 		}
 	}
-	return nil, true, NoHandleError("handler 无法处理此连接")
+
+	return nil, true, NoHandleError(fmt.Sprintf("无法识别的协议：%v", b[:10]))
 }
