@@ -12,11 +12,11 @@ import (
 
 //
 const (
-	// 尝试创建处理器时的conn.read 的timeout
-	// 实际是一次性读取数据，所以这个超时指的是客户端必须10秒内发出第一和数据
+// 尝试创建处理器时的conn.read 的timeout
+// 实际是一次性读取数据，所以这个超时指的是客户端必须10秒内发出第一和数据
 	handler_new_timeout = 10 * time.Second
 
-	// 默认一个连接的总处理时间
+// 默认一个连接的总处理时间
 	handler_base_timeout = 10 * time.Minute
 )
 
@@ -87,9 +87,9 @@ func (srv *Server) handlerConn(conn net.Conn) {
 	}
 	conn.SetDeadline(time.Now().Add(handler_new_timeout))
 
-	h, _, _ := srv.hNewer.New(conn)
+	h, _, err := srv.hNewer.New(conn)
 	if h == nil {
-		glog.Warning("未识别连接协议，远端地址：%v，近端地址：%v。", conn.RemoteAddr(), conn.LocalAddr())
+		glog.Warning("无法识别请求的协议类型，远端地址：%v，近端地址：%v，详细错误：%v", conn.RemoteAddr(), conn.LocalAddr(), err)
 		return
 	}
 
