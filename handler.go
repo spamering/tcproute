@@ -17,6 +17,7 @@ type Handler interface {
 	String() string
 	// Handler 是实际处理请求的函数
 	// 注意：如果返回那么连接就会被关闭。
+	// 注意：默认设置了10分钟后连接超时，如需修改请自行处理。
 	Handle()
 }
 

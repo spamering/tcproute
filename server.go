@@ -10,6 +10,16 @@ import (
 	"bytes"
 )
 
+//
+const (
+	// 尝试创建处理器时的conn.read 的timeout
+	// 实际是一次性读取数据，所以这个超时指的是客户端必须10秒内发出第一和数据
+	handler_new_timeout = 10 * time.Second
+
+	// 默认一个连接的总处理时间
+	handler_base_timeout = 10 * time.Minute
+)
+
 type Server struct {
 	Addr   string       // TCP address to listen on, ":http" if empty
 	hNewer HandlerNewer //
@@ -72,14 +82,17 @@ func (srv *Server) handlerConn(conn net.Conn) {
 	defer conn.Close()
 
 	if tcpConn, ok := conn.(*net.TCPConn); ok == true {
-		// 设置关闭连接时最多等待时间
+		// 设置关闭连接时最多等待多少秒
 		tcpConn.SetLinger(5)
 	}
+	conn.SetDeadline(time.Now().Add(handler_new_timeout))
 
 	h, _, _ := srv.hNewer.New(conn)
 	if h == nil {
 		glog.Warning("未识别连接协议，远端地址：%v，近端地址：%v。", conn.RemoteAddr(), conn.LocalAddr())
 		return
 	}
+
+	conn.SetDeadline(time.Now().Add(handler_base_timeout))
 	h.Handle()
 }
