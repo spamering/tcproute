@@ -14,19 +14,17 @@ import (
 const (
 // 尝试创建处理器时的conn.read 的timeout
 // 实际是一次性读取数据，所以这个超时指的是客户端必须10秒内发出第一和数据
-	handler_new_timeout = 10 * time.Second
+	handlerNewTimeout = 10 * time.Second
 
-// 默认一个连接的总处理时间
-	handler_base_timeout = 10 * time.Minute
+// 默认一个连接的总处理时间，一般都会被实际的处理器修改掉。
+	handlerBaseTimeout = 10 * time.Minute
 )
 
 type Server struct {
-	Addr   string       // TCP address to listen on, ":http" if empty
-	hNewer HandlerNewer //
-						//	ReadTimeout    time.Duration // maximum duration before timing out read of the request
-						//	WriteTimeout   time.Duration // maximum duration before timing out write of the response
-						//	MaxHeaderBytes int           // maximum size of request headers, DefaultMaxHeaderBytes if 0
-	ln     net.Listener
+	Addr     string       // TCP 监听地址
+	hNewer   HandlerNewer // 请求处理器
+	upStream UpStreamDial // 上层代理
+	ln       net.Listener
 }
 
 func (srv *Server) ListAndServe() {
@@ -85,7 +83,7 @@ func (srv *Server) handlerConn(conn net.Conn) {
 		// 设置关闭连接时最多等待多少秒
 		tcpConn.SetLinger(5)
 	}
-	conn.SetDeadline(time.Now().Add(handler_new_timeout))
+	conn.SetDeadline(time.Now().Add(handlerNewTimeout))
 
 	h, _, err := srv.hNewer.New(conn)
 	if h == nil {
@@ -93,6 +91,6 @@ func (srv *Server) handlerConn(conn net.Conn) {
 		return
 	}
 
-	conn.SetDeadline(time.Now().Add(handler_base_timeout))
+	conn.SetDeadline(time.Now().Add(handlerBaseTimeout))
 	h.Handle()
 }

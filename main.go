@@ -15,9 +15,9 @@ func main() {
 	var srv Server
 	srv.Addr = ":7070"
 
-	h := NewSwitchHandlerNewer()
+	h := NewSwitchHandlerNewer(&srv)
 
-	hs:=NewSocksHandlerNewer()
+	hs := NewSocksHandlerNewer(&srv)
 	h.AppendHandlerNewer(hs)
 
 	srv.hNewer = h

@@ -2,8 +2,14 @@ package main
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
+const (
+	handlerTimeoutHello = 10 * time.Second// 握手 timeout 鉴定 + 接受 CMD 的总允许时间
+	handlerTimeoutConnect = 10 * time.Second// 连接目标地址超时
+	handlerTimeoutForward = 5 * time.Minute// 转发超时 每次转发数据都会重置这个超时时间
+)
 
 // NoHandle 无法处理的协议类型
 // 尝试通过 New 对连接创建 Handler 时，如果协议不匹配无法处理，那么就返回这个错误。

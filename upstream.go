@@ -1,4 +1,21 @@
 package main
+import (
+	"time"
+	"net"
+)
+
+/*
+
+为了实现 http 、https 连接异常自动切换连接IP的功能，必须接受连接并读取请求内容。
+
+大概和标准的 tcp 连接一样即可
+
+先尝试建立连接，对于非 http、https 是真正的尝试建立连接，建立连接后才返回建立连接成功。
+
+对于 http、https 连接是直接返回建立连接成功，然后接收 http 请求内容，根据http 请求的 host 或 https 的 SNI 来获得目标网站的地址。这样可以防止dns欺骗。
+
+
+*/
 
 type UpStream interface {
 
@@ -6,28 +23,7 @@ type UpStream interface {
 
 
 
-// 上级线路
-
-// 分为 socks 代理、http 代理、https 代理、本地直连 等类型线路
-
-// 好吧，并不需要做太多的处理，还是和 python 版本一样即可。
-
-// 同时存在 简单多路分发线路、http 过滤器线路、https 证书验证器 线路等过滤器线路用来提供特殊功能。
-
-// 简单多路分发器会尝试使用多个线路同时连接，最后使用最快建立连接的线路。
-
-//
-
-
-// 可以提供
-
-
-
-// 表示封装好的 net 模块
-// 完全模仿 net 模块实现，所有数据都会通过代理中转。
-// 不支持的方法会返回错误。
-type ProxyClientNet interface {
-
+type UpStreamDial interface {
+	// 建立新连接
+	DialTimeout(network, address string, timeout time.Duration) (net.Conn, error)
 }
-
-
