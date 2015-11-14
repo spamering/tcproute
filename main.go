@@ -24,7 +24,7 @@ func main() {
 	srv.hNewer = h
 
 	// 上层代理
-	upStream, err := NewSwitchUpStream(&srv)
+	upStream, err := NewBaseUpStream(&srv)
 	if err != nil {
 		panic(err)
 	}
