@@ -4,10 +4,8 @@ import (
 	"time"
 	"net"
 	"github.com/golang/glog"
+	"fmt"
 	"io"
-	"bufio"
-	"sync"
-	"bytes"
 )
 
 //
@@ -27,7 +25,7 @@ type Server struct {
 	ln       net.Listener
 }
 
-func (srv *Server) ListAndServe() {
+func (srv *Server) ListAndServe() error {
 	if srv.Addr == "" {
 		srv.Addr = ":7070"
 	}
@@ -42,8 +40,8 @@ func (srv *Server) ListAndServe() {
 }
 
 
-func (srv *Server) Server() {
-	ln := &srv.ln
+func (srv *Server) Server() error {
+	ln := srv.ln
 	defer ln.Close()
 	var tempDelay time.Duration
 	for {
@@ -87,10 +85,16 @@ func (srv *Server) handlerConn(conn net.Conn) {
 
 	h, _, err := srv.hNewer.New(conn)
 	if h == nil {
-		glog.Warning("无法识别请求的协议类型，远端地址：%v，近端地址：%v，详细错误：%v", conn.RemoteAddr(), conn.LocalAddr(), err)
+		glog.Warning(fmt.Sprintf("无法识别请求的协议类型，远端地址：%v，近端地址：%v，详细错误：%v", conn.RemoteAddr(), conn.LocalAddr(), err))
 		return
 	}
 
 	conn.SetDeadline(time.Now().Add(handlerBaseTimeout))
-	h.Handle()
+	if err := h.Handle(); err != nil {
+		if err != io.EOF {
+			glog.Warning("协议处理错误：", err)
+		}else {
+			fmt.Println(conn.RemoteAddr(), " EOF 结束。")
+		}
+	}
 }

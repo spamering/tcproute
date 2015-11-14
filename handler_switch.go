@@ -23,27 +23,27 @@ func (sh *switchHandlerNewer)AppendHandlerNewer(h HandlerNewer) {
 // 尝试创建处理
 // 这里会循环尝试创建所有的处理器
 func (sh *switchHandlerNewer)New(conn net.Conn) (h Handler, rePre bool, err error) {
-	preConn := preread.NewPreConn(conn)
-	preConn.NewPre()
-	defer preConn.ClosePre()
+	pc := preread.NewPreConn(conn)
+	pc.NewPre()
+	defer pc.ClosePre()
 
 	// 预先读一次数据
 	b := make([]byte, 4096)
-	if n, err := preConn.Read(b); err != nil {
-		b = b[:n]
-	} else {
+	if n, err := pc.Read(b); err != nil {
 		b = b[0:0]
+	} else {
+		b = b[:n]
 	}
-	preConn.ResetPreOffset()
+	pc.ResetPreOffset()
 
 	for _, hn := range sh.handlerNewers {
-		if h, reset, _ := hn.New(preConn); h != nil {
+		if h, reset, _ := hn.New(pc); h != nil {
 			if reset {
-				preConn.ResetPreOffset()
+				pc.ResetPreOffset()
 			}
 			return h, false, nil
 		} else {
-			preConn.ResetPreOffset()
+			pc.ResetPreOffset()
 		}
 	}
 

@@ -3,6 +3,7 @@ import (
 	"fmt"
 	"net"
 	"time"
+	"io"
 )
 
 const (
@@ -15,7 +16,7 @@ const (
 // 尝试通过 New 对连接创建 Handler 时，如果协议不匹配无法处理，那么就返回这个错误。
 type NoHandleError string
 
-func (e * NoHandleError) Error() string {
+func (e NoHandleError) Error() string {
 	return fmt.Sprintf("协议无法处理：%v", string(e))
 }
 
@@ -24,7 +25,7 @@ type Handler interface {
 	// Handler 是实际处理请求的函数
 	// 注意：如果返回那么连接就会被关闭。
 	// 注意：默认设置了10分钟后连接超时，如需修改请自行处理。
-	Handle()
+	Handle() error
 }
 
 // Newer 是创建处理器接口
@@ -36,4 +37,52 @@ type HandlerNewer interface {
 	// 在创建处理器成功时根据reset的值确定是否复位预读。true 复位预读的数据，flase不复位预读的数据。
 	// 注意：函数内部不允许调用会引起副作用的方法，例如 close、 write 等函数 。
 	New(conn net.Conn) (h Handler, rePre bool, err error)
+}
+
+
+func forwardConn(sConn, oConn net.Conn, timeout time.Duration) error {
+	errChan := make(chan error, 10)
+
+	go _forwardConn(sConn, oConn, timeout, errChan)
+	go _forwardConn(oConn, sConn, timeout, errChan)
+
+	return <-errChan
+}
+
+func _forwardConn(sConn, oConn net.Conn, timeout time.Duration, errChan chan error) {
+	buf := make([]byte, forwardBufSize)
+	for {
+		sConn.SetDeadline(time.Now().Add(timeout))
+		oConn.SetDeadline(time.Now().Add(timeout))
+		// 虽然存在 WriteTo 等方法，但是由于无法刷新超时时间，所以还是需要使用标准的 Read、Write。
+
+		if n, err := sConn.Read(buf[:forwardBufSize]); err != nil {
+			if err == io.EOF {
+				errChan <- err
+			}else {
+				errChan <- fmt.Errorf("转发读错误：%v", err)
+			}
+			return
+		}else {
+			buf = buf[:n]
+		}
+
+		wbuf := buf
+		for {
+			if len(wbuf) == 0 {
+				break
+			}
+
+			if n, err := oConn.Write(wbuf); err != nil {
+				if err == io.EOF {
+					errChan <- err
+				}else {
+					errChan <- fmt.Errorf("转发写错误：%v", err)
+				}
+				return
+			} else {
+				wbuf = wbuf[n:]
+			}
+		}
+	}
 }

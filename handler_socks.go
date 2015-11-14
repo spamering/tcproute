@@ -6,9 +6,9 @@ import (
 	"time"
 	"io"
 	"bytes"
-	"reflect"
 	"encoding/binary"
 	"github.com/golang/glog"
+	"strconv"
 )
 
 const forwardBufSize = 8192 // 转发缓冲区大小
@@ -34,8 +34,10 @@ func (sev *hSocksServer) New(conn net.Conn) (h Handler, rePre bool, err error) {
 	rePre = true
 	b := make([]byte, 1024)
 
-	if n, err := conn.Read(b); err != nil {
-		err = fmt.Errorf("读取错误：%v", err)
+	if n, cerr := conn.Read(b); cerr != nil {
+		err = fmt.Errorf("读取错误：%v", cerr)
+		fmt.Println(err)
+		fmt.Println(b[:100])
 		return
 	}else {
 		b = b[:n]
@@ -95,7 +97,7 @@ func (h*hSocksHandle)handleSocks5() error {
 	}
 
 	//判断是否存在无需鉴定
-	if bytes.Contains(byte(0), b) != true {
+	if bytes.Contains(b, []byte{0}) != true {
 		return fmt.Errorf("客户端不支持无鉴定，登陆失败。客户端支持的鉴定方式：%v", b)
 	}
 
@@ -156,23 +158,29 @@ func (h*hSocksHandle)handleSocks5() error {
 
 	// 连接目标网站
 	upStrrem := h.hSocksServer.srv.upStream
-	oConn, err := upStrrem.DialTimeout("tcp", net.JoinHostPort(host, string(prot)), handlerNewTimeout)
+	rAddr := net.JoinHostPort(host, strconv.FormatUint(uint64(prot), 10))
+	oConn, err := upStrrem.DialTimeout("tcp", rAddr, handlerNewTimeout)
 	if err != nil {
 		conn.SetDeadline(time.Now().Add(handlerTimeoutHello))
 		conn.Write([]byte{0x05, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
-		return
+		return fmt.Errorf("无法连接目标网站( %v )，详细错误：%v", rAddr, err)
 	}
+	defer oConn.Close()
 
 	// 获得远端的 IP 及端口
-	rIp := net.IP(make([]byte, 4))
+	rIp := make([]byte, 4, 16)
 	rPort := make([]byte, 2)
-	if v, ok := conn.RemoteAddr().(net.TCPAddr); ok {
-		rIp = v.IP
+	if v, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
+		if ip4 := v.IP.To4(); ip4 != nil {
+			rIp = []byte(ip4)
+		}else {
+			rIp = []byte(v.IP)
+		}
 		switch len(rIp) {
 		case 4, 16:
 		default:
 			glog.Warning("未知的IP地址类型，IP：%v", rIp)
-			rIp = net.IP(make([]byte, 4))
+			rIp = make([]byte, 4)
 		}
 		binary.BigEndian.PutUint16(rPort, uint16(v.Port))
 	}
@@ -185,8 +193,8 @@ func (h*hSocksHandle)handleSocks5() error {
 	} else {
 		b = append(b, 0x04)
 	}
-	b = append(b, rIp)
-	b = append(b, rPort)
+	b = append(b, rIp...)
+	b = append(b, rPort...)
 
 	if _, err := conn.Write(b); err != nil {
 		return fmt.Errorf("回应客户端命令失败：%v", err)
@@ -199,43 +207,3 @@ func (h*hSocksHandle)handleSocks4() error {
 	return fmt.Errorf("未完成")
 }
 
-
-func forwardConn(sConn, oConn net.Conn, timeout time.Duration) {
-	errChan := make(chan error)
-
-	go _forwardConn(sConn, oConn, timeout, errChan)
-	go _forwardConn(oConn, sConn, timeout, errChan)
-
-	return <-errChan
-}
-
-func _forwardConn(sConn, oConn net.Conn, timeout time.Duration, errChan chan error) {
-	buf := make([]byte, forwardBufSize)
-	for {
-		sConn.SetDeadline(time.Now().Add(timeout))
-		oConn.SetDeadline(time.Now().Add(timeout))
-		// 虽然存在 WriteTo 等方法，但是由于无法刷新超时时间，所以还是需要使用标准的 Read、Write。
-
-		if n, err := sConn.Read(buf[:forwardBufSize]); err != nil {
-			errChan <- err
-			return
-		}else {
-			buf = buf[:n]
-		}
-
-		for {
-			wbuf := buf
-			if len(wbuf) == 0 {
-				break
-			}
-
-			if n, err := oConn.Write(wbuf); err != nil {
-				errChan <- err
-				return
-			} else {
-				wbuf = wbuf[n:]
-			}
-		}
-	}
-
-}
