@@ -58,7 +58,7 @@ func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan in
 			// 本地执行 DNS 解析
 			dnsRes := NewDnsQuery(host)
 
-			// 退出时停止dns解析
+			// 退出时及被要求终止时停止dns解析
 			go func() {
 				defer func() {_ = recover()}()
 				select {
@@ -76,14 +76,23 @@ func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan in
 				go func() {
 					defer func() { goEndChan <- 0 }()
 					for r := range dnsRes.RecordChan {
-						n := time.Now()
-						c, err := dial.DialTimeout("tcp", net.JoinHostPort(r.Ip, prot), timeout)
-						if err != nil {
-							rerr = err
-							continue
+						select {
+						case <-exitChan:
+							return
+						default:
+							n := time.Now()
+							c, err := dial.DialTimeout("tcp", net.JoinHostPort(r.Ip, prot), timeout)
+							if err != nil {
+								rerr = err
+								continue
+							}
+							atomic.AddUint32(&okCount, 1)
+
+							func() {// 使用匿名函数捕获异常，防止 connChan 关闭时崩溃
+								defer func() {_ = recover()}()
+								connChan <- ConnRes{c, time.Now().Sub(n)}
+							}()
 						}
-						atomic.AddUint32(&okCount, 1)
-						connChan <- ConnRes{c, time.Now().Sub(n)}
 					}
 				}()
 			}
