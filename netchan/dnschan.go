@@ -49,6 +49,7 @@ func init() {
 }
 
 func searchBlackIP() {
+	// 每1小时执行一次
 	t := time.NewTicker(1 * time.Hour)
 
 	run := func() {
