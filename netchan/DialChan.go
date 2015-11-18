@@ -3,6 +3,7 @@ import (
 	"time"
 	"net"
 	"fmt"
+	"sync/atomic"
 )
 
 
@@ -70,6 +71,7 @@ func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan in
 
 			// 启动多个连接线程连接
 			goEndChan := make(chan int)
+			var okCount uint32 = 0
 			for i := 0; i < LocalConnGoCount; i++ {
 				go func() {
 					defer func() { goEndChan <- 0 }()
@@ -80,6 +82,7 @@ func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan in
 							rerr = err
 							continue
 						}
+						atomic.AddUint32(&okCount, 1)
 						connChan <- ConnRes{c, time.Now().Sub(n)}
 					}
 				}()
@@ -88,6 +91,10 @@ func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan in
 			// 等待所有线程运行完毕
 			for i := 0; i < LocalConnGoCount; i++ {
 				<-goEndChan
+			}
+
+			if okCount > 0 {
+				return nil
 			}
 			return
 		}
