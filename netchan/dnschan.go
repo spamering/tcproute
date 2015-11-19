@@ -114,7 +114,7 @@ func NewDnsQuery(domain string) *DnsQuery {
 // 跳过一次延迟
 func (dq*DnsQuery) SkipSleep() {
 	go func() {
-		defer func(){_=recover()}()
+		defer func() {_ = recover()}()
 		dq.sleepChan <- 1
 		time.AfterFunc(100 * time.Millisecond, func() {
 			select {
@@ -155,13 +155,33 @@ func (s *systemDNS)query(domain string, RecordChan chan *DnsRecord, ExitChan cha
 		return
 	}
 
+	// 转换ip 为字符串格式，同时检查有没有 屏蔽IP
+	ipsString := make([]string, 0, len(ips))
+	func() {
+		rwm.RLock()
+		defer rwm.RUnlock()
 
-	for _, ip := range ips {
-		RecordChan <- &DnsRecord{ip.String(), 0}
+		for _, ip := range ips {
+			ipString := ip.String()
+
+			// 如果查询包含异常IP，清空本次查询的结果
+			// 系统dns解析可以全部抛弃，但是全球web分布式dns解析就不能这么干了
+			// 因为可能只是某个地区有问题，不能把所有地区一竿子全部打死。
+			if blackIP[ipString] == true {
+				glog.Warning(fmt.Sprintf("[systemDNS]解析 %v 时发现异常IP %v ，放弃本次 DNS 解析结果。", domain, ipString))
+				ipsString = make([]string, 0)
+				return
+			}
+
+			ipsString = append(ipsString, ipString)
+		}
+	}()
+
+	for _, ipString := range ipsString {
+		RecordChan <- &DnsRecord{ipString, 0}
 	}
-
-
 }
+
 func (s *systemDNS)querySleep() time.Duration {
 	return 0
 }
