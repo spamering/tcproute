@@ -54,7 +54,7 @@ type tcppingUpStream struct {
 }
 
 func NewTcppingUpStream(srv *Server) (*tcppingUpStream, error) {
-	tUpstream := tcppingUpStream{srv, make([]proxyclient.ProxyClient)}
+	tUpstream := tcppingUpStream{srv, make([]DialClient, 0, 5)}
 
 	// 加入线路
 	var addErr error
@@ -85,18 +85,19 @@ type dialTimeoutRes struct {
 func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Duration) (net.Conn, error) {
 	// 循环各个代理建立连接
 
-	resChan := make(dialTimeoutRes)
+	resChan := make(chan dialTimeoutRes)
 	connChan := make(chan netchan.ConnRes)
 	exitChan := make(chan int)
+
+	// 选定连接退出函数时不再尝试新的连接
+	defer func() {
+		defer func() { _ = recover() }()
+		close(exitChan)
+	}()
 
 	// 另开一个线程进行连接并整理连接信息
 	go func() {
 
-		// 退出时不再进行新连接
-		defer func() {
-			defer func() { _ = recover() }()
-			close(exitChan)
-		}()
 
 		// 循环使用各个 upstream 进行连接
 		goConnEndChan := make(chan int)
@@ -106,7 +107,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 				defer func() {goConnEndChan <- 1}()
 				cerr := netchan.ChanDialTimeout(d.pc, connChan, exitChan, d.dnsResolve, network, address, timeout)
 				if cerr != nil {
-					glog.Warning(cerr)
+					glog.Info(fmt.Sprintf("线路 %v 连接 %v 失败，错误：%v", d.pc, address, cerr))
 				}
 			}()
 		}
@@ -134,5 +135,6 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 		}()
 	}()
 
-	return <-resChan
+	res := <-resChan
+	return res.conn, res.err
 }
