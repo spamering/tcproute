@@ -18,18 +18,18 @@ func TextChanDialTimeout(t *testing.T) {
 	}
 
 	go func() {
-		ChanDialTimeout(dial, connChan, exitChan, true, "tcp", "www.baidu.com:80", 5 * time.Second)
+		ChanDialTimeout(dial, connChan, exitChan, true,"user data 111", "tcp", "www.baidu.com:80", 5 * time.Second)
 		close(connChan)
 		close(exitChan)
 	}()
 
-	i:=0
+	i := 0
 
 	for _ = range connChan {
 		i++
 	}
 
-	if i==0{
+	if i == 0 {
 		t.Errorf("错误，未成功建立至少1个连接。")
 	}
 

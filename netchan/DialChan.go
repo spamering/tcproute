@@ -10,10 +10,14 @@ import (
 const LocalConnGoCount = 10 // 本地连接时使用的线程数（只对dns解析结果生效）
 
 type ConnRes struct {
-	Conn net.Conn
-	Ping time.Duration // 连接耗时
-}
 
+	Dial       DialTimeouter
+	Conn       net.Conn
+	Ping       time.Duration // 连接耗时
+	DomainAddr string
+	IpAddr     string        //当使用DNS解析时，保存着 ip:端口 格式的地址
+	UserData   interface{}
+}
 
 type DialTimeouter interface {
 	DialTimeout(network, address string, timeout time.Duration) (net.Conn, error)
@@ -26,7 +30,7 @@ type DialTimeouter interface {
 
 
 */
-func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan int, dnsResolve bool, network, address string, timeout time.Duration) (rerr error) {
+func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan int, dnsResolve bool, userData interface{}, network, address string, timeout time.Duration) (rerr error) {
 	myExitChan := make(chan int)
 	defer close(myExitChan)
 
@@ -50,7 +54,7 @@ func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan in
 			}else {
 				func() {
 					defer func() {_ = recover()}()
-					connChan <- ConnRes{c, time.Now().Sub(n)}
+					connChan <- ConnRes{dial, c, time.Now().Sub(n), address, address, userData}
 				}()
 				return nil
 			}
@@ -80,8 +84,9 @@ func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan in
 						case <-exitChan:
 							return
 						default:
+							ipAddr := net.JoinHostPort(r.Ip, prot)
 							n := time.Now()
-							c, err := dial.DialTimeout("tcp", net.JoinHostPort(r.Ip, prot), timeout)
+							c, err := dial.DialTimeout("tcp", ipAddr, timeout)
 							if err != nil {
 								rerr = err
 								continue
@@ -90,7 +95,7 @@ func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan in
 
 							func() {// 使用匿名函数捕获异常，防止 connChan 关闭时崩溃
 								defer func() {_ = recover()}()
-								connChan <- ConnRes{c, time.Now().Sub(n)}
+								connChan <- ConnRes{dial, c, time.Now().Sub(n), address, ipAddr, userData}
 							}()
 						}
 					}

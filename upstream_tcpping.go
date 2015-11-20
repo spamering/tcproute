@@ -43,18 +43,25 @@ import (
 */
 
 type DialClient struct {
+	name       string
 	dnsResolve bool
 	pc         proxyclient.ProxyClient
 }
 
 // TcpPing 方式选择最快连接上的。
 type tcppingUpStream struct {
-	srv *Server
-	dc  []DialClient
+	srv       *Server
+	dc        []DialClient
+	connCache *upStreamConnCache
+}
+
+type chanDialTimeoutUserData struct {
+	dialName   string
+	domainAddr string // connChan 有 domainAddr 还增加这个字段的原因是使用缓存时，
 }
 
 func NewTcppingUpStream(srv *Server) (*tcppingUpStream, error) {
-	tUpstream := tcppingUpStream{srv, make([]DialClient, 0, 5)}
+	tUpstream := tcppingUpStream{srv, make([]DialClient, 0, 5), NewUpStreamConnCache()}
 
 	// 加入线路
 	var addErr error
@@ -64,7 +71,7 @@ func NewTcppingUpStream(srv *Server) (*tcppingUpStream, error) {
 			addErr = fmt.Errorf("无法创建上层代理：%v", err)
 			return
 		}
-		tUpstream.dc = append(tUpstream.dc, DialClient{dnsResolve, pc})
+		tUpstream.dc = append(tUpstream.dc, DialClient{proxyUrl, dnsResolve, pc})
 	}
 
 	addProxyClient("direct://0.0.0.0:0000", true)
@@ -83,12 +90,37 @@ type dialTimeoutRes struct {
 }
 
 func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Duration) (net.Conn, error) {
-	// 循环各个代理建立连接
 
-	resChan := make(chan dialTimeoutRes)
-	connChan := make(chan netchan.ConnRes)
+
+
+
+	// 尝试使用缓存中的连接
+	item, err := su.connCache.GetOptimal(address)
+	if err == nil {
+
+		ctimeout := item.TcpPing
+		if ctimeout < 100 * time.Millisecond {
+			ctimeout += 20 * time.Millisecond
+		} else if ctimeout < 500 * time.Millisecond {
+			ctimeout += 50 * time.Millisecond
+		}else {
+			ctimeout += 100 * time.Millisecond
+		}
+
+		// 考虑了下，还是使用原始的连接方式，而没有使用 dialChan
+		n := time.Now()
+		c, err := item.dial.DialTimeout(network, item.IpAddr, ctimeout)
+		if err == nil {
+			go su.connCache.Updata(address, item.IpAddr, time.Now().Sub(n), item.dial, item.dialName)
+			return c, nil
+		}
+	}
+
+	// 缓存未命中时同时使用多个线路尝试连接。
+
+	resChan := make(chan dialTimeoutRes, 1)
+	connChan := make(chan netchan.ConnRes, 10)
 	exitChan := make(chan int)
-
 	// 选定连接退出函数时不再尝试新的连接
 	defer func() {
 		defer func() { _ = recover() }()
@@ -97,17 +129,16 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 
 	// 另开一个线程进行连接并整理连接信息
 	go func() {
-
-
 		// 循环使用各个 upstream 进行连接
 		goConnEndChan := make(chan int)
 		for _, d := range su.dc {
 			d := d
 			go func() {
 				defer func() {goConnEndChan <- 1}()
-				cerr := netchan.ChanDialTimeout(d.pc, connChan, exitChan, d.dnsResolve, network, address, timeout)
+				userData := chanDialTimeoutUserData{d.name, address}
+				cerr := netchan.ChanDialTimeout(d.pc, connChan, exitChan, d.dnsResolve, &userData, network, address, timeout)
 				if cerr != nil {
-					glog.Info(fmt.Sprintf("线路 %v 连接 %v 失败，错误：%v", d.pc, address, cerr))
+					glog.Info(fmt.Sprintf("线路 %v 连接 %v 失败，错误：%v", d.name, address, cerr))
 				}
 			}()
 		}
@@ -126,10 +157,19 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 		// 在无法建立连接时将返回err
 		go func() {
 			// 取结果
+			ok := false
 			for conn := range connChan {
-				resChan <- dialTimeoutRes{conn.Conn, nil}
-				//TODO: 这里可以保存最快的ip，下次就不需要再尝试各个连接了。
-				return
+				// 保存连接速度纪录
+				conn := conn
+				userData := conn.UserData.(chanDialTimeoutUserData)
+				go su.connCache.Updata(userData.domainAddr, conn.IpAddr, conn.Ping, conn.Dial, userData.dialName)
+
+				if ok == false {
+					ok = true
+					resChan <- dialTimeoutRes{conn.Conn, nil}
+				} else {
+					conn.Conn.Close()
+				}
 			}
 			resChan <- dialTimeoutRes{nil, fmt.Errorf("所有线路建立连接失败。")}
 		}()
@@ -138,3 +178,4 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 	res := <-resChan
 	return res.conn, res.err
 }
+
