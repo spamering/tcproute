@@ -161,7 +161,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 			for conn := range connChan {
 				// 保存连接速度纪录
 				conn := conn
-				userData := conn.UserData.(chanDialTimeoutUserData)
+				userData := conn.UserData.(*chanDialTimeoutUserData)
 				go su.connCache.Updata(userData.domainAddr, conn.IpAddr, conn.Ping, conn.Dial, userData.dialName)
 
 				if ok == false {
