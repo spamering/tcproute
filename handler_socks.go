@@ -159,7 +159,7 @@ func (h*hSocksHandle)handleSocks5() error {
 	// 连接目标网站
 	upStrrem := h.hSocksServer.srv.upStream
 	rAddr := net.JoinHostPort(host, strconv.FormatUint(uint64(prot), 10))
-	oConn, err := upStrrem.DialTimeout("tcp", rAddr, handlerNewTimeout)
+	oConn, oConnErrorReporting, err := upStrrem.DialTimeout("tcp", rAddr, handlerNewTimeout)
 	if err != nil {
 		conn.SetDeadline(time.Now().Add(handlerTimeoutHello))
 		conn.Write([]byte{0x05, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
@@ -208,11 +208,12 @@ func (h*hSocksHandle)handleSocks5() error {
 
 	// 识别异常状态
 	// 连接被重置、未收到任何数据
+	if oConnErrorReporting != nil {
 
-	// 连接建立时间小于2秒，并且未收到任何数据
-	if endTime.Sub(startTime) < 2 * time.Second && fCount.recv == 0 {
-		//h.hSocksServer.srv.errConn.AddErrLog()
-		//TODO: 这里记录故障，但是比较麻烦啊，需要重新实现 net.Conn
+		// 连接建立时间小于2秒，并且未收到任何数据
+		if endTime.Sub(startTime) < 2 * time.Second && fCount.recv == 0 {
+			oConnErrorReporting.Report(ErrConnTypeRead0)
+		}
 	}
 
 	fmt.Printf("接收：%v ,发送：%v\r\n", fCount.recv, fCount.send)
