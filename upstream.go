@@ -21,9 +21,28 @@ type UpStream interface {
 
 }
 
+// 基本的错误报告实现
+type UpStreamErrorReportingBase struct {
+	errConnServer                *ErrConnService
+	dailName, DomainAddr, IpAddr string
+
+}
+
+func (er*UpStreamErrorReportingBase) Report(t ErrConnType) {
+	er.errConnServer.AddErrLog(er.dailName, er.DomainAddr, er.IpAddr, t)
+}
+
+// 错误报告
+type UpStreamErrorReporting interface {
+	// 使用者认为连接有问题时调用
+	Report(t ErrConnType)
+}
 
 
 type UpStreamDial interface {
 	// 建立新连接
-	DialTimeout(network, address string, timeout time.Duration) (net.Conn, error)
+	// 如果没有实现 UpStreamErrorReporting 可以返回 nil
+	DialTimeout(network, address string, timeout time.Duration) (net.Conn, UpStreamErrorReporting, error)
+
+
 }

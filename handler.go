@@ -4,6 +4,7 @@ import (
 	"net"
 	"time"
 	"io"
+	"sync/atomic"
 )
 
 const (
@@ -39,17 +40,22 @@ type HandlerNewer interface {
 	New(conn net.Conn) (h Handler, rePre bool, err error)
 }
 
+// 转发计数
+// 使用 atomic 实现原子操作
+type forwardCount struct {
+	send, recv uint64
+}
 
-func forwardConn(sConn, oConn net.Conn, timeout time.Duration) error {
+func forwardConn(sConn, oConn net.Conn, timeout time.Duration, count *forwardCount) error {
 	errChan := make(chan error, 10)
 
-	go _forwardConn(sConn, oConn, timeout, errChan)
-	go _forwardConn(oConn, sConn, timeout, errChan)
+	go _forwardConn(sConn, oConn, timeout, errChan, &count.send)
+	go _forwardConn(oConn, sConn, timeout, errChan, &count.recv)
 
 	return <-errChan
 }
 
-func _forwardConn(sConn, oConn net.Conn, timeout time.Duration, errChan chan error) {
+func _forwardConn(sConn, oConn net.Conn, timeout time.Duration, errChan chan error, count *uint64) {
 	buf := make([]byte, forwardBufSize)
 	for {
 		sConn.SetDeadline(time.Now().Add(timeout))
@@ -84,5 +90,8 @@ func _forwardConn(sConn, oConn net.Conn, timeout time.Duration, errChan chan err
 				wbuf = wbuf[n:]
 			}
 		}
+
+		// 记录转发计数
+		atomic.AddUint64(count, uint64(len(buf)))
 	}
 }

@@ -19,10 +19,36 @@ const (
 )
 
 type Server struct {
-	Addr     string       // TCP 监听地址
-	hNewer   HandlerNewer // 请求处理器
-	upStream UpStreamDial // 上层代理
+	Addr     string          // TCP 监听地址
+	hNewer   HandlerNewer    // 请求处理器
+	upStream UpStreamDial    // 上层代理
 	ln       net.Listener
+	errConn  *ErrConnService //错误连接统计
+}
+
+func NewServer(addr string) *Server {
+	srv := Server{}
+	srv.Addr = addr
+
+	// 错误连接记录
+	srv.errConn = NewErrConnService()
+
+
+	// 处理器
+	h := NewSwitchHandlerNewer(&srv)
+	hs := NewSocksHandlerNewer(&srv)
+	h.AppendHandlerNewer(hs)
+	srv.hNewer = h
+
+	// 基本上层代理
+	upStream, err := NewBaseUpStream(&srv)
+	if err != nil {
+		panic(err)
+	}
+	srv.upStream = upStream
+
+	return &srv
+
 }
 
 func (srv *Server) ListAndServe() error {
