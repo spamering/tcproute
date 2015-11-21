@@ -40,12 +40,14 @@ type upStreamConnCacheDomainItem struct {
 type upStreamConnCache struct {
 					   //domains map[string]upStreamConnCacheDomainItem
 	domains *lru.Cache // 域名 map ，类型是 *upStreamConnCacheDomainItem
+	srv     *Server
 	rwm     sync.RWMutex
 }
 
-func NewUpStreamConnCache() *upStreamConnCache {
+func NewUpStreamConnCache(srv  *Server) *upStreamConnCache {
 	c := upStreamConnCache{}
 	c.domains = lru.New(200)
+	c.srv = srv
 	return &c
 }
 
@@ -112,6 +114,7 @@ func (c*upStreamConnCache)set(domainAddr string, item  *upStreamConnCacheDomainI
 // 取得指定的缓存
 // 存在时 err == nil ，否则 err != nil
 // 返回值是值拷贝，不需要担心多线程复用问题
+// 会尝试检查是否是是异常地址
 func (c*upStreamConnCache)GetOptimal(domainAddr string) (upStreamConnCacheAddrItem, error) {
 	c.rwm.RLock()
 	defer c.rwm.RUnlock()
@@ -125,5 +128,10 @@ func (c*upStreamConnCache)GetOptimal(domainAddr string) (upStreamConnCacheAddrIt
 		return upStreamConnCacheAddrItem{}, fmt.Errorf("不存在")
 	}
 
-	return *(item.itemsList[0]), nil
+	for _, i := range item.itemsList {
+		if c.srv.errConn.Check(i.dialName, i.DomainAddr, i.IpAddr) == true {
+			return *i, nil
+		}
+	}
+	return upStreamConnCacheAddrItem{}, fmt.Errorf("全部连接有异常。")
 }

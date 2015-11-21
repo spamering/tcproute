@@ -200,10 +200,28 @@ func (h*hSocksHandle)handleSocks5() error {
 		return fmt.Errorf("回应客户端命令失败：%v", err)
 	}
 
-	return forwardConn(conn, oConn, handlerTimeoutForward)
+	fCount := forwardCount{} //转发计数
+
+	startTime := time.Now()
+	err = forwardConn(conn, oConn, handlerTimeoutForward, &fCount)
+	endTime := time.Now()
+
+	// 识别异常状态
+	// 连接被重置、未收到任何数据
+
+	// 连接建立时间小于2秒，并且未收到任何数据
+	if endTime.Sub(startTime) < 2 * time.Second && fCount.recv == 0 {
+		//h.hSocksServer.srv.errConn.AddErrLog()
+		//TODO: 这里记录故障，但是比较麻烦啊，需要重新实现 net.Conn
+	}
+
+	fmt.Printf("接收：%v ,发送：%v\r\n", fCount.recv, fCount.send)
+
+	return err
 }
 
 func (h*hSocksHandle)handleSocks4() error {
 	return fmt.Errorf("未完成")
 }
+
 

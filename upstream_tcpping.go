@@ -61,7 +61,7 @@ type chanDialTimeoutUserData struct {
 }
 
 func NewTcppingUpStream(srv *Server) (*tcppingUpStream, error) {
-	tUpstream := tcppingUpStream{srv, make([]DialClient, 0, 5), NewUpStreamConnCache()}
+	tUpstream := tcppingUpStream{srv, make([]DialClient, 0, 5), NewUpStreamConnCache(srv)}
 
 	// 加入线路
 	var addErr error
@@ -111,8 +111,11 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 		n := time.Now()
 		c, err := item.dial.DialTimeout(network, item.IpAddr, ctimeout)
 		if err == nil {
+			fmt.Printf("缓存命中：%v 代理：%v IP：%v \r\n", address, item.dialName, item.IpAddr)
 			go su.connCache.Updata(address, item.IpAddr, time.Now().Sub(n), item.dial, item.dialName)
 			return c, nil
+		} else {
+			fmt.Printf("缓存连接失败：%v 代理：%v IP：%v err:%v \r\n", address, item.dialName, item.IpAddr, err)
 		}
 	}
 
@@ -156,21 +159,44 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 		// 将最快建立的结果返回给 resChan 好返回主函数。
 		// 在无法建立连接时将返回err
 		go func() {
-			// 取结果
 			ok := false
+			var oconn net.Conn // 保存最快的结果，如果全部的连接都有问题时间使用这个连接
+
+			defer func() {
+				if oconn != nil {
+					oconn.Close()
+				}
+			}()
+
+
 			for conn := range connChan {
 				// 保存连接速度纪录
 				conn := conn
 				userData := conn.UserData.(*chanDialTimeoutUserData)
 				go su.connCache.Updata(userData.domainAddr, conn.IpAddr, conn.Ping, conn.Dial, userData.dialName)
 
-				if ok == false {
+				// 返回最快并可靠的连接
+				if ok == false && su.srv.errConn.Check(userData.dialName, userData.domainAddr, conn.IpAddr) == true {
 					ok = true
 					resChan <- dialTimeoutRes{conn.Conn, nil}
 				} else {
-					conn.Conn.Close()
+
+					// 未安全返回时保存最快的一个连接
+					if oconn == nil && ok == false {
+						oconn = conn.Conn
+					}else {
+						conn.Conn.Close()
+					}
 				}
+
 			}
+
+			if oconn != nil {
+				resChan <- dialTimeoutRes{oconn, nil}
+				oconn = nil
+				return
+			}
+
 			resChan <- dialTimeoutRes{nil, fmt.Errorf("所有线路建立连接失败。")}
 		}()
 	}()
