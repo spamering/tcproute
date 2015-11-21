@@ -135,3 +135,12 @@ func (c*upStreamConnCache)GetOptimal(domainAddr string) (upStreamConnCacheAddrIt
 	}
 	return upStreamConnCacheAddrItem{}, fmt.Errorf("全部连接有异常。")
 }
+
+// 删除某个域的缓存记录
+// 在每次进行全部连接重试时将会清空旧的缓存内容。
+func (c*upStreamConnCache)Del(domainAddr string) {
+	c.rwm.Lock()
+	defer c.rwm.Unlock()
+
+	c.domains.Remove(domainAddr)
+}
