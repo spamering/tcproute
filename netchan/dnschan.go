@@ -44,6 +44,12 @@ func init() {
 
 	sysDns := systemDNS("")
 	queries = append(queries, &sysDns)
+	httpDns, err := NewHttpDns("http://127.0.0.1:5353/httpdns")
+	if err != nil {
+		glog.Warning("httpDNS 错误：%v", err)
+	}else {
+		queries = append(queries, httpDns)
+	}
 
 	go searchBlackIP()
 }
