@@ -132,6 +132,15 @@ func (fdns*FileDNS) cacheSet(domain string, ips []*IpRecord) {
 
 func (fdns*FileDNS) query(domain string) []*IpRecord {
 	domain = strings.ToLower(domain)
+
+	// 解决 google.com.hk 的问题。
+	google_hk := "google.com.hk"
+	if len(domain) > len(google_hk) {
+		if domain[len(domain) - len(google_hk):] == google_hk {
+			domain = domain[:len(domain) - 3]
+		}
+	}
+
 	ips := fdns.cacheGet(domain)
 	if ips != nil {
 		return ips

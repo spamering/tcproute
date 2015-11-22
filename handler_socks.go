@@ -209,9 +209,15 @@ func (h*hSocksHandle)handleSocks5() error {
 	// 识别异常状态
 	// 连接被重置、未收到任何数据
 	if oConnErrorReporting != nil {
+		connTime := endTime.Sub(startTime)
+
 
 		// 连接建立时间小于2秒，并且未收到任何数据
-		if endTime.Sub(startTime) < 2 * time.Second && fCount.recv == 0 {
+		if connTime < 2 * time.Second && fCount.recv == 0 {
+			oConnErrorReporting.Report(ErrConnTypeRead0)
+		}
+
+		if connTime<1*time.Second && fCount.recv<1024 && prot==443{
 			oConnErrorReporting.Report(ErrConnTypeRead0)
 		}
 	}

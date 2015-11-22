@@ -3,6 +3,7 @@ import (
 	"github.com/golang/groupcache/lru"
 	"sync"
 	"time"
+	"fmt"
 )
 
 /*
@@ -119,11 +120,13 @@ func (ec*ErrConnService)Check(dialName, domainAddr, ipAddr string) bool {
 		d.refresh()
 	}
 
-	if d.cache.dial[dialName] >= 2 {
+	if d.cache.dial[dialName] >= 10 {
+		fmt.Printf("%v 的 %v 线路的尝试连接IP %v ，由于线路属于经常故障线路，忽略本连接。\r\n", domainAddr, dialName, ipAddr)
 		return false
 	}
 
 	if d.cache.ipAddr[ipAddr] >= 2 {
+		fmt.Printf("%v 的 %v 线路的尝试连接IP %v ，由于ip属于经常故障ip，忽略本连接。\r\n", domainAddr, dialName, ipAddr)
 		return false
 	}
 

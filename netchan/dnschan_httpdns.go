@@ -62,7 +62,7 @@ func (hd*httpDNS)query(domain string, RecordChan chan *DnsRecord, ExitChan chan 
 
 	resp, err := http.Get(newUrl.String())
 	if err != nil {
-		glog.Warning(fmt.Sprint("httpDns query %v err:", domain, err))
+		glog.Warning(fmt.Sprintf("httpDns query %v err:", domain, err))
 		return
 	}
 
