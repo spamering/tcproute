@@ -122,6 +122,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 	}
 
 	// 缓存未命中时同时使用多个线路尝试连接。
+	su.connCache.Del(address)
 
 	resChan := make(chan dialTimeoutRes, 1)
 	connChan := make(chan netchan.ConnRes, 10)

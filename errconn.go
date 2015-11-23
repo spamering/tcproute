@@ -3,6 +3,7 @@ import (
 	"github.com/golang/groupcache/lru"
 	"sync"
 	"time"
+	"fmt"
 )
 
 /*
@@ -59,7 +60,7 @@ type ErrConnDomain struct {
 // 异常连接 相关服务
 type ErrConnService struct {
 	lru *lru.Cache // key domainAddr value *ErrConnDomain
-	rwm sync.RWMutex
+	m   sync.Mutex
 }
 
 func NewErrConnService() *ErrConnService {
@@ -86,8 +87,8 @@ func (ec*ErrConnService)set(domain *ErrConnDomain) {
 
 // 增加异常记录
 func (ec*ErrConnService)AddErrLog(dialName, domainAddr, ipAddr string, errType ErrConnType) {
-	ec.rwm.Lock()
-	defer ec.rwm.Unlock()
+	ec.m.Lock()
+	defer ec.m.Unlock()
 
 	d := ec.get(domainAddr)
 	if d == nil {
@@ -107,8 +108,8 @@ func (ec*ErrConnService)AddErrLog(dialName, domainAddr, ipAddr string, errType E
 // 如果启用了全球解析，那么需要挂掉很多ip。
 // 返回值： true 表示安全 false 表示不建议使用
 func (ec*ErrConnService)Check(dialName, domainAddr, ipAddr string) bool {
-	ec.rwm.Lock()
-	defer ec.rwm.Unlock()
+	ec.m.Lock()
+	defer ec.m.Unlock()
 
 	d := ec.get(domainAddr)
 	if d == nil {
@@ -119,11 +120,13 @@ func (ec*ErrConnService)Check(dialName, domainAddr, ipAddr string) bool {
 		d.refresh()
 	}
 
-	if d.cache.dial[dialName] >= 2 {
+	if d.cache.dial[dialName] >= 10 {
+		fmt.Printf("%v 的 %v 线路的尝试连接IP %v ，由于线路属于经常故障线路，忽略本连接。\r\n", domainAddr, dialName, ipAddr)
 		return false
 	}
 
 	if d.cache.ipAddr[ipAddr] >= 2 {
+		fmt.Printf("%v 的 %v 线路的尝试连接IP %v ，由于ip属于经常故障ip，忽略本连接。\r\n", domainAddr, dialName, ipAddr)
 		return false
 	}
 
