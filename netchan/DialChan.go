@@ -7,7 +7,7 @@ import (
 )
 
 
-const LocalConnGoCount = 10 // 本地连接时使用的线程数（只对dns解析结果生效）
+const LocalConnGoCount = 30 // 本地连接时使用的线程数（只对dns解析结果生效）
 
 type ConnRes struct {
 
