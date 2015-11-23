@@ -36,7 +36,8 @@ type queryer interface {
 	query(domain string, RecordChan chan *DnsRecord, ExitChan chan int)
 
 	// 执行前的默认等待时间
-	querySleep() time.Duration
+	// 阻塞改为实现方自己实现。好处是缓存可以由实现自己管理。
+	//	querySleep() time.Duration
 }
 
 func init() {
@@ -94,20 +95,10 @@ func searchBlackIP() {
 }
 
 func (dq*DnsQuery) query() {
-	if len(queries) == 0 {
-		return
+	for _, q := range queries {
+		q := q
+		go q.query(dq.Domain, dq.RecordChan, dq.exitChan)
 	}
-	queries[0].query(dq.Domain, dq.RecordChan, dq.exitChan)
-	for _, q := range queries[1:] {
-		time.AfterFunc(q.querySleep(), func() {dq.sleepChan <- 1})
-		select {
-		case <-dq.sleepChan:
-			q.query(dq.Domain, dq.RecordChan, dq.exitChan)
-		case <-dq.exitChan:
-			return
-		}
-	}
-	dq.Stop()
 }
 
 // 返回 DNS 记录信道及取消信道
@@ -115,20 +106,6 @@ func NewDnsQuery(domain string) *DnsQuery {
 	q := DnsQuery{make(chan *DnsRecord), make(chan int), domain, make(chan int, 10)}
 	go q.query()
 	return &q
-}
-
-// 跳过一次延迟
-func (dq*DnsQuery) SkipSleep() {
-	go func() {
-		defer func() {_ = recover()}()
-		dq.sleepChan <- 1
-		time.AfterFunc(100 * time.Millisecond, func() {
-			select {
-			case <-dq.sleepChan:
-			case <-dq.exitChan:
-			}
-		})
-	}()
 }
 
 func (dq*DnsQuery) Stop() {
@@ -186,9 +163,5 @@ func (s *systemDNS)query(domain string, RecordChan chan *DnsRecord, ExitChan cha
 	for _, ipString := range ipsString {
 		RecordChan <- &DnsRecord{ipString, 0}
 	}
-}
-
-func (s *systemDNS)querySleep() time.Duration {
-	return 0
 }
 
