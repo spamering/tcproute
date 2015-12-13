@@ -105,7 +105,7 @@ func ChanDialTimeout(dial DialTimeouter, dialCredit int, connChan chan ConnRes, 
 		}
 	}else {
 		// 针对线路执行安全检查，通过后下面还有针对 ip 进行的安全检查
-		if filter.DialFilter(network, host, nil, portInt, dialCredit, dialCredit) == false {
+		if filter.DialFilter(network, host, "", portInt, dialCredit, dialCredit) == false {
 			return nil
 		}
 
