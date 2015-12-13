@@ -7,6 +7,7 @@ import (
 	"github.com/gamexg/TcpRoute2/netchan"
 	"github.com/golang/glog"
 	"strconv"
+	"sync"
 )
 
 /*
@@ -157,11 +158,12 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 	// 另开一个线程进行连接并整理连接信息
 	go func() {
 		// 循环使用各个 upstream 进行连接
-		goConnEndChan := make(chan int)
+		sw := sync.WaitGroup{}
+		sw.Add(len(su.dc))
 		for _, d := range su.dc {
 			d := d
 			go func() {
-				defer func() {goConnEndChan <- 1}()
+				defer func() {sw.Done()}()
 				userData := chanDialTimeoutUserData{d.name, address}
 				cerr := netchan.ChanDialTimeout(d.pc, d.dialCredit, connChan, exitChan, d.dnsResolve, &userData, nil, network, address, timeout)
 				if cerr != nil {
@@ -173,9 +175,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 		// 所有连接线程都结束时关闭 connChan 信道
 		// 终止取结果的线程，防止永久阻塞。
 		go func() {
-			for i := 0; i < len(su.dc); i++ {
-				<-goConnEndChan
-			}
+			sw.Wait()
 			close(connChan)
 		}()
 
@@ -183,11 +183,12 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 		// 将最快建立的结果返回给 resChan 好返回主函数。
 		// 在无法建立连接时将返回err
 		go func() {
-			ok := false
+			ok := false // 是否已经找到最快的稳定连接
 			var oconn net.Conn // 保存最快的结果，如果全部的连接都有问题时间使用这个连接
-			var ErrorReporting UpStreamErrorReporting //错误报告
+			var ErrorReporting *UpStreamErrorReportingBase //错误报告（实际使用 oconn 连接如果发现问题通过本变量报告错误）
 
 			defer func() {
+				// 结束时函数关闭之前保存的最快的连接。
 				if oconn != nil {
 					oconn.Close()
 				}
@@ -195,30 +196,37 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 
 
 			for conn := range connChan {
-				// 保存最快的连接（可能并不可靠）
+				// 保存最快的连接（可能并不稳定） 用于应付找不到稳定连接的情况
 				conn := conn
 				userData := conn.UserData.(*chanDialTimeoutUserData)
+
+				// 上报这个连接建立的速度
 				go su.connCache.Updata(userData.domainAddr, conn.IpAddr, conn.Ping, conn.Dial, userData.dialName)
 
-				// 返回最快并可靠的连接
+				// 返回最快并稳定的连接
 				if ok == false && su.srv.errConn.Check(userData.dialName, userData.domainAddr, conn.IpAddr) == true {
+					// 找到了最快的稳定连接
+					fmt.Printf("为 %v 找到了最快的稳定连接 %v ，线路：%v.\r\n", userData.domainAddr, conn.IpAddr, userData.dialName)
 					ok = true
 					ErrorReporting = &UpStreamErrorReportingBase{su.srv.errConn, userData.dialName, userData.domainAddr, conn.IpAddr}
 					resChan <- dialTimeoutRes{conn.Conn, ErrorReporting, nil}
 				} else {
+					// 已经有最快稳定链接 或者 本连接不稳定。
 
 					// 未安全返回时保存最快的一个连接
 					if oconn == nil && ok == false {
+						// 如果未找到可靠连接并且本连接时最快建立的连接 就先保存下本连接等待备用。
 						oconn = conn.Conn
 						ErrorReporting = &UpStreamErrorReportingBase{su.srv.errConn, userData.dialName, userData.domainAddr, conn.IpAddr}
 					}else {
 						conn.Conn.Close()
 					}
 				}
-
 			}
 
-			if oconn != nil {
+			// 最后如果连接未建立，并且有最快建立的连接，那么即使他不稳定也是用这个。
+			if ok == false && oconn != nil {
+				fmt.Printf("为 %v 找到了最快但不稳定连接 %v ，线路：%v.\r\n", ErrorReporting.DomainAddr, ErrorReporting.IpAddr, ErrorReporting.DailName)
 				resChan <- dialTimeoutRes{oconn, ErrorReporting, nil}
 				oconn = nil
 				return

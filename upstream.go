@@ -24,12 +24,12 @@ type UpStream interface {
 // 基本的错误报告实现
 type UpStreamErrorReportingBase struct {
 	errConnServer                *ErrConnService
-	dailName, DomainAddr, IpAddr string
+	DailName, DomainAddr, IpAddr string
 
 }
 
 func (er*UpStreamErrorReportingBase) Report(t ErrConnType) {
-	er.errConnServer.AddErrLog(er.dailName, er.DomainAddr, er.IpAddr, t)
+	er.errConnServer.AddErrLog(er.DailName, er.DomainAddr, er.IpAddr, t)
 }
 
 // 错误报告
