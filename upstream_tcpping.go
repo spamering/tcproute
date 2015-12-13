@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gamexg/TcpRoute2/netchan"
 	"github.com/golang/glog"
+	"strconv"
 )
 
 /*
@@ -46,6 +47,7 @@ type DialClient struct {
 	name       string
 	dnsResolve bool
 	pc         proxyclient.ProxyClient
+	dialCredit int // 线路可靠(信誉)程度
 }
 
 // TcpPing 方式选择最快连接上的。
@@ -60,22 +62,41 @@ type chanDialTimeoutUserData struct {
 	domainAddr string // connChan 有 domainAddr 还增加这个字段的原因是使用缓存时，
 }
 
+
 func NewTcppingUpStream(srv *Server) (*tcppingUpStream, error) {
 	tUpstream := tcppingUpStream{srv, make([]DialClient, 0, 5), NewUpStreamConnCache(srv)}
 
 	// 加入线路
 	var addErr error
 	addProxyClient := func(proxyUrl string, dnsResolve bool) {
-		pc, err := proxyclient.NewProxyClient(proxyUrl)
-		if err != nil {
-			addErr = fmt.Errorf("无法创建上层代理：%v", err)
+		if addErr != nil {
 			return
 		}
-		tUpstream.dc = append(tUpstream.dc, DialClient{proxyUrl, dnsResolve, pc})
+
+		pc, err := proxyclient.NewProxyClient(proxyUrl)
+		if err != nil {
+			addErr = fmt.Errorf("无法创建上级代理：%v", err)
+			return
+		}
+
+		dialCredit := 0
+		creditQuery, ok := pc.GetProxyAddrQuery()["credit"]
+		if ok {
+			if len(creditQuery) > 1 {
+				addErr = fmt.Errorf("代理 credit 重复设置，代理url:%v", proxyUrl)
+				return
+			}
+			dialCreditTem, err := strconv.Atoi(creditQuery[0])
+			if err == nil {
+				dialCredit = dialCreditTem
+			}
+		}
+
+		tUpstream.dc = append(tUpstream.dc, DialClient{proxyUrl, dnsResolve, pc, dialCredit})
 	}
 
 	addProxyClient("direct://0.0.0.0:0000", true)
-	addProxyClient("http://127.0.0.1:7777", false)
+	addProxyClient("http://127.0.0.1:7777?credit=-100", false)
 
 	if addErr != nil {
 		return nil, addErr
@@ -142,7 +163,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 			go func() {
 				defer func() {goConnEndChan <- 1}()
 				userData := chanDialTimeoutUserData{d.name, address}
-				cerr := netchan.ChanDialTimeout(d.pc, connChan, exitChan, d.dnsResolve, &userData, network, address, timeout)
+				cerr := netchan.ChanDialTimeout(d.pc, d.dialCredit, connChan, exitChan, d.dnsResolve, &userData, nil, network, address, timeout)
 				if cerr != nil {
 					glog.Info(fmt.Sprintf("线路 %v 连接 %v 失败，错误：%v", d.name, address, cerr))
 				}

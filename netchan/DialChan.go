@@ -4,10 +4,13 @@ import (
 	"net"
 	"fmt"
 	"sync/atomic"
+	"strconv"
+	"sync"
 )
 
 
 const LocalConnGoCount = 30 // 本地连接时使用的线程数（只对dns解析结果生效）
+
 
 type ConnRes struct {
 
@@ -28,11 +31,16 @@ type DialTimeouter interface {
 
 可以通过选项指定是否本地dns解析，使用本地解析时会同时使用获得的多个ip连接，同样通过 chan 返回所有建立的连接。
 
+filter 过滤器，确定是否使用dns解析得到的ip
 
 */
-func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan int, dnsResolve bool, userData interface{}, network, address string, timeout time.Duration) (rerr error) {
+func ChanDialTimeout(dial DialTimeouter, dialCredit int, connChan chan ConnRes, exitChan chan int, dnsResolve bool, userData interface{}, filter DialFilterer, network, address string, timeout time.Duration) (rerr error) {
 	myExitChan := make(chan int)
 	defer close(myExitChan)
+
+	if filter == nil {
+		filter = NewDialFilter(nil)
+	}
 
 	select {
 	case <-exitChan:
@@ -44,9 +52,21 @@ func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan in
 		if err != nil {
 			return fmt.Errorf("地址错误：%v", err)
 		}
+
+		portInt, err := strconv.Atoi(prot)
+		if err != nil || portInt < 0 {
+			return fmt.Errorf("端口错误：", portInt)
+		}
+
 		ip := net.ParseIP(host)
 
 		if dnsResolve == false || ip != nil {
+
+			// 检查是否符合安全标准
+			if filter.DialFilter(network, host, ip.String(), portInt, dialCredit, dialCredit) == false {
+				return nil
+			}
+
 			n := time.Now()
 			c, err := dial.DialTimeout(network, address, timeout)
 			if err != nil {
@@ -74,16 +94,25 @@ func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan in
 			}()
 
 			// 启动多个连接线程连接
-			goEndChan := make(chan int)
+			var wg sync.WaitGroup
 			var okCount uint32 = 0
+			wg.Add(LocalConnGoCount)
 			for i := 0; i < LocalConnGoCount; i++ {
 				go func() {
-					defer func() { goEndChan <- 0 }()
+					defer func() { wg.Done() }()
+
+					// 接收 dns 解析结果并执行连接
 					for r := range dnsRes.RecordChan {
 						select {
 						case <-exitChan:
 							return
 						default:
+
+						// 执行安全检查，对于不太安全的dns解析结果只用于 https 连接。
+							if filter.DialFilter(network, host, r.Ip, portInt, dialCredit, r.Credit) == false {
+								continue
+							}
+
 							ipAddr := net.JoinHostPort(r.Ip, prot)
 							n := time.Now()
 							c, err := dial.DialTimeout("tcp", ipAddr, timeout)
@@ -103,9 +132,7 @@ func ChanDialTimeout(dial DialTimeouter, connChan chan ConnRes, exitChan chan in
 			}
 
 			// 等待所有线程运行完毕
-			for i := 0; i < LocalConnGoCount; i++ {
-				<-goEndChan
-			}
+			wg.Wait()
 
 			if okCount > 0 {
 				return nil
