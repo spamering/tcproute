@@ -212,8 +212,8 @@ func (h*hSocksHandle)handleSocks5() error {
 		connTime := endTime.Sub(startTime)
 
 
-		// 连接建立时间小于2秒，并且未收到任何数据
-		if connTime < 2 * time.Second && fCount.recv == 0 {
+		// 连接建立时间小于60秒，并且未收到任何数据
+		if connTime < 60 * time.Second && fCount.recv == 0 {
 			oConnErrorReporting.Report(ErrConnTypeRead0)
 		}
 
