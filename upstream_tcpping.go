@@ -97,7 +97,7 @@ func NewTcppingUpStream(srv *Server) (*tcppingUpStream, error) {
 	}
 
 	addProxyClient("direct://0.0.0.0:0000", true)
-	addProxyClient("http://127.0.0.1:7777?credit=-100", false)
+	addProxyClient("http://127.0.0.1:7777", false)
 
 	if addErr != nil {
 		return nil, addErr
@@ -210,7 +210,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 						oconnTimeout.Stop()
 					}
 					func() {
-						defer recover()
+						defer func() { _ = recover() }()
 						resChan <- dialTimeoutRes{conn.Conn, ErrorReporting, nil}
 					}()
 					fmt.Printf("为 %v 找到了最快的稳定连接 %v ，线路：%v.\r\n", userData.domainAddr, conn.IpAddr, userData.dialName)
@@ -226,7 +226,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 						// 如果一定时间内还没找到最快的稳定线路那么就是用这个线路，并且不再尝试新连接。
 						oconnTimeout = time.AfterFunc(1 * time.Second, func() {
 							func() {
-								defer recover()
+								defer func() { _ = recover() }()
 								resChan <- dialTimeoutRes{oconn, ErrorReporting, nil}
 							}()
 						})
@@ -240,7 +240,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 			// 最后如果连接未建立，并且有最快建立的连接，那么即使他不稳定也是用这个。
 			if ok == false && oconn != nil {
 				func() {
-					defer recover()
+					defer func(){recover()}()
 					resChan <- dialTimeoutRes{oconn, ErrorReporting, nil}
 				}()
 				fmt.Printf("为 %v 找到了最快但不稳定连接 %v ，线路：%v.\r\n", ErrorReporting.DomainAddr, ErrorReporting.IpAddr, ErrorReporting.DailName)
@@ -251,7 +251,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 			// 最后还是没找到可用连接
 			if ok == false {
 				func() {
-					defer recover()
+					defer func(){recover()}()
 					resChan <- dialTimeoutRes{nil, nil, fmt.Errorf("所有线路建立连接失败。")}
 				}()
 			}
