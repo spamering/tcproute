@@ -22,6 +22,11 @@ proxylient 专用，只支持 CCONNECT 命令。
 由于前端有nginx统一处理ssl，这里就不支持 ssl 了。
 */
 
+
+type Flusher interface {
+	Flush() error
+}
+
 // http服务器
 type HttpSrever struct {
 	httpAddr string
@@ -73,6 +78,7 @@ func (s *HttpSrever) HandlerHttp(conn net.Conn) {
 		}
 
 		//TODO： 这里需要设置下超时机制。
+		//TODO: 同样需要注意缓存的问题，也就是需要手工实现代码。
 		go io.Copy(remoteConn, rb)
 		io.Copy(conn, remoteConn)
 	} else {
