@@ -62,10 +62,13 @@ func (s *HttpSrever) HandlerHttp(conn net.Conn) {
 	}
 
 	if r.Method == "CONNECT" {
-		host := r.URL.Host
+
+		host := r.RequestURI
+
 
 		remoteConn, err := net.DialTimeout("tcp", host, 5 * time.Second)
 		if err != nil {
+			fmt.Println("Bad Gateway", err)
 			s.Error(conn, http.StatusBadGateway, "Bad Gateway")
 			return
 		}
