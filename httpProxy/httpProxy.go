@@ -19,7 +19,7 @@ import (
 /*
 http 代理服务器
 proxylient 专用，只支持 CCONNECT 命令。
-由于前端有nginx统一处理ssl，这里就不支持 ssl 了。
+放置到 nginx 前面，只处理 httpsDomain 域名的 CONNECT 请求。未知的域名会转发给 httpsForwardAddr 。
 */
 
 
