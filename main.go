@@ -5,6 +5,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/koding/multiconfig"
 	"time"
+	"flag"
 )
 
 type ServerConfig struct {
@@ -22,13 +23,15 @@ type ServerConfigUpStream struct {
 
 
 func main() {
-	//flag.Parse()
 	defer glog.Flush()
-
 	//os.Setenv("GLOG_logtostderr", "1")
 	//os.Setenv("GLOG_stderrthreshold", "0")
 
-	m := multiconfig.NewWithPath("config.toml")
+	config_path := flag.String("config", "config.toml", "配置文件路径")
+	flag.Parse()
+
+	m := multiconfig.NewWithPath(*config_path)
+
 	serverConfig := new(ServerConfig)
 	m.MustLoad(serverConfig)
 
