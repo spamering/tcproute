@@ -217,12 +217,12 @@ func (h*hSocksHandle)handleSocks5() error {
 			oConnErrorReporting.Report(ErrConnTypeRead0)
 		}
 
-		if connTime < 1 * time.Second && fCount.recv < 1024 && prot == 443 {
+		if connTime < 1 * time.Second && fCount.recv < 1024 && prot == 443 && fCount.send > 50 {
 			oConnErrorReporting.Report(ErrConnTypeRead0)
 		}
 	}
 
-	fmt.Printf("接收：%v ,发送：%v\r\n", fCount.recv, fCount.send)
+	//fmt.Printf("接收：%v ,发送：%v\r\n", fCount.recv, fCount.send)
 
 	return err
 }
