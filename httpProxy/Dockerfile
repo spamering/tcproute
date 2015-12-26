@@ -9,4 +9,4 @@ RUN go get github.com/golang/gamexg/TcpRoute2/httpProxy \
 
 USER nobody
 
-CMD ["httpProxy-wrapper"]
+CMD ["httpProxy"]
