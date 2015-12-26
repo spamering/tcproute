@@ -44,11 +44,13 @@ import (
 
 */
 
+
 type DialClient struct {
 	name       string
 	dnsResolve bool
 	pc         proxyclient.ProxyClient
-	dialCredit int // 线路可靠(信誉)程度
+	dialCredit int           // 线路可靠(信誉)程度
+	delay      time.Duration // 线路在使用前延迟的时间
 }
 
 // TcpPing 方式选择最快连接上的。
@@ -64,52 +66,41 @@ type chanDialTimeoutUserData struct {
 }
 
 
-func NewTcppingUpStream(srv *Server) (*tcppingUpStream, error) {
+func NewTcppingUpStream(srv *Server) (*tcppingUpStream) {
 	tUpstream := tcppingUpStream{srv, make([]DialClient, 0, 5), NewUpStreamConnCache(srv)}
-
-	// 加入线路
-	var addErr error
-	addProxyClient := func(proxyUrl string, dnsResolve bool) {
-		if addErr != nil {
-			return
-		}
-
-		pc, err := proxyclient.NewProxyClient(proxyUrl)
-		if err != nil {
-			addErr = fmt.Errorf("无法创建上级代理：%v", err)
-			return
-		}
-
-		dialCredit := 0
-		creditQuery, ok := pc.GetProxyAddrQuery()["credit"]
-		if ok {
-			if len(creditQuery) > 1 {
-				addErr = fmt.Errorf("代理 credit 重复设置，代理url:%v", proxyUrl)
-				return
-			}
-			dialCreditTem, err := strconv.Atoi(creditQuery[0])
-			if err == nil {
-				dialCredit = dialCreditTem
-			}
-		}
-
-		tUpstream.dc = append(tUpstream.dc, DialClient{proxyUrl, dnsResolve, pc, dialCredit})
-	}
-
-	addProxyClient("direct://0.0.0.0:0000", true)
-	addProxyClient("http://127.0.0.1:7777", false)
-
-	if addErr != nil {
-		return nil, addErr
-	}
-
-	return &tUpstream, nil
+	return &tUpstream
 }
+
 
 type dialTimeoutRes struct {
 	conn         net.Conn
 	errReporting UpStreamErrorReporting
 	err          error
+}
+
+func (su*tcppingUpStream)AddUpStream(name, proxyUrl string, dnsResolve bool, credit int, delay time.Duration) error {
+	// 加入线路
+
+	pc, err := proxyclient.NewProxyClient(proxyUrl)
+	if err != nil {
+		return fmt.Errorf("无法创建上级代理：%v", err)
+	}
+
+	dialCredit := 0
+	creditQuery, ok := pc.GetProxyAddrQuery()["credit"]
+	if ok {
+		if len(creditQuery) > 1 {
+			return fmt.Errorf("代理 credit 重复设置，代理url:%v", proxyUrl)
+
+		}
+		dialCreditTem, err := strconv.Atoi(creditQuery[0])
+		if err == nil {
+			dialCredit = dialCreditTem
+		}
+	}
+
+	su.dc = append(su.dc, DialClient{name, dnsResolve, pc, dialCredit, delay})
+	return nil
 }
 
 func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Duration) (net.Conn, UpStreamErrorReporting, error) {
@@ -139,13 +130,14 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 		}
 	}
 
-	// 缓存未命中时同时使用多个线路尝试连接。
+	// 缓存未命中(缓存故障)时删除缓存记录
 	su.connCache.Del(address)
 
+	// 缓存未命中时同时使用多个线路尝试连接。
 	resChan := make(chan dialTimeoutRes, 1)
 	connChan := make(chan netchan.ConnRes, 10)
 	exitChan := make(chan int)
-	// 选定连接退出函数时不再尝试新的连接
+	// 选定连接 退出函数时不再尝试新的连接
 	defer func() {
 		defer func() { _ = recover() }()
 		close(exitChan)
@@ -161,6 +153,15 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 			d := d
 			go func() {
 				defer func() {sw.Done()}()
+
+				// 线路强制延迟功能
+				time.Sleep(d.delay)
+				select {
+				case <-exitChan:
+					return
+				default:
+				}
+
 				userData := chanDialTimeoutUserData{d.name, address}
 				cerr := netchan.ChanDialTimeout(d.pc, d.dialCredit, connChan, exitChan, d.dnsResolve, &userData, nil, network, address, timeout)
 				if cerr != nil {
@@ -206,7 +207,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 					// 找到了最快的稳定连接
 					ok = true
 					ErrorReporting = &UpStreamErrorReportingBase{su.srv.errConn, userData.dialName, userData.domainAddr, conn.IpAddr}
-					if oconnTimeout!=nil{
+					if oconnTimeout != nil {
 						oconnTimeout.Stop()
 					}
 					func() {
@@ -240,7 +241,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 			// 最后如果连接未建立，并且有最快建立的连接，那么即使他不稳定也是用这个。
 			if ok == false && oconn != nil {
 				func() {
-					defer func(){recover()}()
+					defer func() {recover()}()
 					resChan <- dialTimeoutRes{oconn, ErrorReporting, nil}
 				}()
 				fmt.Printf("为 %v 找到了最快但不稳定连接 %v ，线路：%v.\r\n", ErrorReporting.DomainAddr, ErrorReporting.IpAddr, ErrorReporting.DailName)
@@ -251,7 +252,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 			// 最后还是没找到可用连接
 			if ok == false {
 				func() {
-					defer func(){recover()}()
+					defer func() {recover()}()
 					resChan <- dialTimeoutRes{nil, nil, fmt.Errorf("所有线路建立连接失败。")}
 				}()
 			}
