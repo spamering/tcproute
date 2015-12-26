@@ -24,3 +24,5 @@ _testmain.go
 *.prof
 .idea/
 config.toml
+httpProxy/tls.crt
+httpProxy/tls.key
