@@ -213,11 +213,11 @@ func (h*hSocksHandle)handleSocks5() error {
 
 
 		// 连接建立时间小于60秒，并且未收到任何数据
-		if connTime < 60 * time.Second && fCount.recv == 0 {
+		if connTime < 60 * time.Second && fCount.recv == 0 && fCount.send > 50 {
 			oConnErrorReporting.Report(ErrConnTypeRead0)
 		}
 
-		if connTime<1*time.Second && fCount.recv<1024 && prot==443{
+		if connTime < 1 * time.Second && fCount.recv < 1024 && prot == 443 {
 			oConnErrorReporting.Report(ErrConnTypeRead0)
 		}
 	}

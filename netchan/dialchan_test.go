@@ -18,7 +18,7 @@ func TextChanDialTimeout(t *testing.T) {
 	}
 
 	go func() {
-		ChanDialTimeout(dial, connChan, exitChan, true,"user data 111", "tcp", "www.baidu.com:80", 5 * time.Second)
+		ChanDialTimeout(dial, 0, connChan, exitChan, true, "user data 111", nil, "tcp", "www.baidu.com:80", 5 * time.Second)
 		close(connChan)
 		close(exitChan)
 	}()
