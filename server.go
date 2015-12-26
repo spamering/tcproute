@@ -119,8 +119,6 @@ func (srv *Server) handlerConn(conn net.Conn) {
 	if err := h.Handle(); err != nil {
 		if err != io.EOF {
 			glog.Warning("协议处理错误：", err)
-		}else {
-			fmt.Println(conn.RemoteAddr(), " EOF 结束。")
 		}
 	}
 }
