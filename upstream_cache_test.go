@@ -5,7 +5,7 @@ import (
 )
 
 func TestUpStreamCache(t *testing.T) {
-	cache := NewUpStreamConnCache()
+	cache := NewUpStreamConnCache(nil)
 
 	_, err := cache.GetOptimal("www.163.com:80")
 	if err == nil {
