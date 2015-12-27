@@ -9,6 +9,8 @@ import (
 	"fmt"
 )
 
+const version = "0.1.0"
+
 type ServerConfig struct {
 	Addr      string `default:":5050"`
 	UpStreams []ServerConfigUpStream
@@ -33,7 +35,6 @@ func main() {
 	flag.Parse()
 
 	if *printVer{
-		const version = "0.1.0"
 		fmt.Println("TcpRoute2 version", version)
 		return
 	}
