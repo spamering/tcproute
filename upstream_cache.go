@@ -3,7 +3,6 @@ import (
 	"sync"
 	"github.com/golang/groupcache/lru"
 	"time"
-	"github.com/gamexg/TcpRoute2/netchan"
 	"fmt"
 	"sort"
 )
@@ -16,15 +15,16 @@ const cacheTimeout = 15 * time.Minute
 // 保存连接耗时缓存
 // 每一个ip、代理一个
 type upStreamConnCacheAddrItem struct {
-									 // TODO: 对于连接被重置怎么处理？
-	IpAddr     string                // IP:端口 格式的地址
-	DomainAddr string                // 域名:端口 格式的地址
-	TcpPing    time.Duration         // 建立连接耗时
-	dial       netchan.DialTimeouter // 使用的线路
+							 // TODO: 对于连接被重置怎么处理？
+	IpAddr     string        // IP:端口 格式的地址
+	DomainAddr string        // 域名:端口 格式的地址
+	TcpPing    time.Duration // 建立连接耗时
+	dialClient *DialClient    // 使用的线路
 	dialName   string
 }
 
 type upStreamConnCacheAddrItems []*upStreamConnCacheAddrItem
+
 func (a upStreamConnCacheAddrItems) Len() int { return len(a) }
 func (a upStreamConnCacheAddrItems) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a upStreamConnCacheAddrItems) Less(i, j int) bool { return a[i].TcpPing < a[j].TcpPing }
@@ -52,7 +52,7 @@ func NewUpStreamConnCache(srv  *Server) *upStreamConnCache {
 }
 
 // 更新记录
-func (c*upStreamConnCache)Updata(domainAddr, ipAddr string, tcpping time.Duration, dial netchan.DialTimeouter, dialName string) {
+func (c*upStreamConnCache)Updata(domainAddr, ipAddr string, tcpping time.Duration, dialClient *DialClient, dialName string) {
 	c.rwm.Lock()
 	defer c.rwm.Unlock()
 
@@ -78,7 +78,7 @@ func (c*upStreamConnCache)Updata(domainAddr, ipAddr string, tcpping time.Duratio
 	value.IpAddr = ipAddr
 	value.DomainAddr = domainAddr
 	value.TcpPing = tcpping
-	value.dial = dial
+	value.dialClient = dialClient
 	value.dialName = dialName
 
 	// TODO: 检查是否需要更新

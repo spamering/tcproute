@@ -19,11 +19,12 @@ import (
 
 
 type DialClient struct {
-	name       string
-	dnsResolve bool
-	pc         proxyclient.ProxyClient
-	dialCredit int           // 线路可靠(信誉)程度
-	delay      time.Duration // 线路在使用前延迟的时间
+	name         string
+	dnsResolve   bool
+	pc           proxyclient.ProxyClient
+	dialCredit   int           // 线路可靠(信誉)程度
+	sleep        time.Duration // 线路在使用前等待的时间
+	correctDelay time.Duration // 对 tcping 修正
 }
 
 // TcpPing 方式选择最快连接上的。
@@ -35,7 +36,9 @@ type tcppingUpStream struct {
 
 type chanDialTimeoutUserData struct {
 	dialName   string
-	domainAddr string // connChan 有 domainAddr 还增加这个字段的原因是使用缓存时，
+	domainAddr string // connChan 有 domainAddr 还增加这个字段的原因是使用缓存时， domainAddr 填入的是缓存的ip
+	dialClient *DialClient
+
 }
 
 
@@ -51,7 +54,7 @@ type dialTimeoutRes struct {
 	err          error
 }
 
-func (su*tcppingUpStream)AddUpStream(name, proxyUrl string, dnsResolve bool, credit int, delay time.Duration) error {
+func (su*tcppingUpStream)AddUpStream(name, proxyUrl string, dnsResolve bool, credit int, sleep time.Duration, correctDelay time.Duration) error {
 	// 加入线路
 
 	pc, err := proxyclient.NewProxyClient(proxyUrl)
@@ -72,7 +75,7 @@ func (su*tcppingUpStream)AddUpStream(name, proxyUrl string, dnsResolve bool, cre
 		}
 	}
 
-	su.dc = append(su.dc, DialClient{name, dnsResolve, pc, dialCredit, delay})
+	su.dc = append(su.dc, DialClient{name, dnsResolve, pc, dialCredit, sleep, correctDelay})
 	return nil
 }
 
@@ -92,10 +95,10 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 
 		// 考虑了下，还是使用原始的连接方式，而没有使用 dialChan
 		n := time.Now()
-		c, err := item.dial.DialTimeout(network, item.IpAddr, ctimeout)
+		c, err := item.dialClient.pc.DialTimeout(network, item.IpAddr, ctimeout)
 		if err == nil {
 			fmt.Printf("缓存命中：%v 代理：%v IP：%v \r\n", address, item.dialName, item.IpAddr)
-			go su.connCache.Updata(address, item.IpAddr, time.Now().Sub(n), item.dial, item.dialName)
+			go su.connCache.Updata(address, item.IpAddr, time.Now().Sub(n) + item.dialClient.correctDelay, item.dialClient, item.dialName)
 			ErrorReporting := &UpStreamErrorReportingBase{su.srv.errConn, item.dialName, item.DomainAddr, item.IpAddr}
 			return c, ErrorReporting, nil
 		} else {
@@ -128,14 +131,14 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 				defer func() {sw.Done()}()
 
 				// 线路强制延迟功能
-				time.Sleep(d.delay)
+				time.Sleep(d.sleep)
 				select {
 				case <-exitChan:
 					return
 				default:
 				}
 
-				userData := chanDialTimeoutUserData{d.name, address}
+				userData := chanDialTimeoutUserData{d.name, address, &d}
 				cerr := netchan.ChanDialTimeout(d.pc, d.dialCredit, connChan, exitChan, d.dnsResolve, &userData, nil, network, address, timeout)
 				if cerr != nil {
 					glog.Info(fmt.Sprintf("线路 %v 连接 %v 失败，错误：%v", d.name, address, cerr))
@@ -173,7 +176,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 				userData := conn.UserData.(*chanDialTimeoutUserData)
 
 				// 上报这个连接建立的速度
-				go su.connCache.Updata(userData.domainAddr, conn.IpAddr, conn.Ping, conn.Dial, userData.dialName)
+				go su.connCache.Updata(userData.domainAddr, conn.IpAddr, conn.Ping + userData.dialClient.correctDelay, userData.dialClient, userData.dialName)
 
 				// 返回最快并稳定的连接
 				if ok == false && su.srv.errConn.Check(userData.dialName, userData.domainAddr, conn.IpAddr) == true {

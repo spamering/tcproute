@@ -21,7 +21,8 @@ type ServerConfigUpStream struct {
 	ProxyUrl   string`default:"direct://0.0.0.0:0000"`
 	DnsResolve bool `default:"false"`
 	Credit     int `default:"0"`
-	Delay      int `default:"0"`
+	Sleep      int `default:"0"`
+	CorrectDelay  int `default:"0"`
 }
 
 
@@ -52,7 +53,7 @@ func main() {
 	srv.upStream = upStream
 
 	for _, up := range serverConfig.UpStreams {
-		if err := upStream.AddUpStream(up.Name, up.ProxyUrl, up.DnsResolve, up.Credit, time.Duration(up.Delay) * time.Millisecond); err != nil {
+		if err := upStream.AddUpStream(up.Name, up.ProxyUrl, up.DnsResolve, up.Credit, time.Duration(up.Sleep) * time.Millisecond, time.Duration(up.CorrectDelay) * time.Millisecond); err != nil {
 			panic(err)
 		}
 	}
