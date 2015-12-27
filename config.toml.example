@@ -7,7 +7,7 @@ addr="127.0.0.1:7070"
 
 
 # 上层代理
-# 连接网络时会自动选择最快的网络。
+# 连接网络时会自动选择最快的线路。
 # 注意，直连也需要提供，否则不会通过直连访问网络。
 
 [[UpStreams]]
@@ -20,6 +20,7 @@ Name="direct"
 # socks4 代理 socks4://123.123.123.123:5050  socks4 协议不支持远端 dns 解析
 # socks4a 代理 socks4a://123.123.123.123:5050
 # socks5 代理 socks5://123.123.123.123:5050?upProxy=http://145.2.1.3:8080
+# ss 代理 ss://method:passowd@123.123.123:5050
 # 直连 direct://0.0.0.0:0000/?LocalAddr=123.123.123.123:0
 ProxyUrl="direct://0.0.0.0:0000"
 # 是否执行本地dns解析
@@ -27,21 +28,20 @@ DnsResolve=true
 
 
 [[UpStreams]]
-Name="https-vps"
+Name="https-proxy.com"
 ProxyUrl="https://www.proxy.com:443"
-DnsResolve=false
 DnsResolve=false
 # 线路的信誉度，不会通过信誉度低于0的代理建立明文协议的连接(http、ftp、stmp等)
 Credit=0
 
 # 使用本线路前等待的时间(单位毫秒)
-# 国内 baidu、qq tcping一般是30ms，这里设置为80ms(0.08秒)之后在尝试本线路。
+# 国内 baidu、qq tcping一般是30ms，这里设置为80ms(0.08秒)。
 # 可以使得大部分国内站点不会尝试通过代理访问，降低上游代理的负担。
-# 0.08秒的延迟很低，并且建立连接后会缓存最快连接记录，不会再次延迟。所以不建议移除。
-Sleep=80
+# 0.08秒的延迟很低，并且建立连接后会缓存最快连接记录，不会再次延迟，所以不建议删除。
+Sleep=500
 
 # 修正延迟
-# 有些代理并不遵守标准代理协议，会在未和目标网站建立连接前就报告建立连接成功。
-# 造成对最优线路统计出错，可以通过这个值人工修正 tcping 。
-# 目前只发现 ss 协议会有这个问题，建议对ss协议的线路设置 CorrectDelay=30 。
+# ss 协议并不会报告是否连接到了目标网站，所以无法获得真实的到目标网站的 tcpping。
+# 目前只能通过 ss 服务器 tcpping + CorrectDelay 来估算。
+# 非 ss 协议不用设置，ss 协议建议设置为50-100.
 CorrectDelay=0
