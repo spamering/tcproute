@@ -6,6 +6,7 @@ import (
 	"github.com/koding/multiconfig"
 	"time"
 	"flag"
+	"fmt"
 )
 
 type ServerConfig struct {
@@ -27,8 +28,15 @@ func main() {
 	//os.Setenv("GLOG_logtostderr", "1")
 	//os.Setenv("GLOG_stderrthreshold", "0")
 
+	printVer :=	flag.Bool("version", false, "print version")
 	config_path := flag.String("config", "config.toml", "配置文件路径")
 	flag.Parse()
+
+	if *printVer{
+		const version = "0.1.0"
+		fmt.Println("TcpRoute2 version", version)
+		return
+	}
 
 	m := multiconfig.NewWithPath(*config_path)
 
