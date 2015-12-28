@@ -115,7 +115,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 	su.connCache.Del(address)
 
 	// 缓存未命中时同时使用多个线路尝试连接。
-	resChan := make(chan dialTimeoutRes, 1)
+	resChan := make(chan dialTimeoutRes)
 	connChan := make(chan netchan.ConnRes, 10)
 	exitChan := make(chan int)
 	// 选定连接 退出函数时不再尝试新的连接
@@ -163,14 +163,18 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 		// 在无法建立连接时将返回err
 		go func() {
 			ok := false // 是否已经找到最快的稳定连接
-			var oconn net.Conn // 保存最快的结果，如果全部的连接都有问题时间使用这个连接
+			var oConn net.Conn // 保存最快的结果，如果全部的连接都有问题时间使用这个连接
+			oConnClose := false //oConn 是否需要关闭。
+			oConnCloseMutex := sync.Mutex{}
 			var ErrorReporting *UpStreamErrorReportingBase //错误报告（实际使用 oconn 连接如果发现问题通过本变量报告错误）
 			var oconnTimeout *time.Timer  // oconn 定时器
 
 			defer func() {
 				// 结束时函数关闭之前保存的最快的连接。
-				if oconn != nil {
-					oconn.Close()
+				oConnCloseMutex.Lock()
+				defer oConnCloseMutex.Unlock()
+				if oConnClose == true {
+					oConn.Close()
 				}
 			}()
 
@@ -200,17 +204,19 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 					// 已经有最快稳定链接 或者 本连接不稳定。
 
 					// 未安全返回时保存最快的一个连接
-					if oconn == nil && ok == false {
+					if oConn == nil && ok == false {
 						// 如果未找到可靠连接并且本连接时最快建立的连接 就先保存下本连接等待备用。
-						oconn = conn.Conn
+						oConn = conn.Conn
+						oConnClose = true
 						ErrorReporting = &UpStreamErrorReportingBase{su.errConn, userData.dialName, userData.domainAddr, conn.IpAddr}
 
 						// 如果一定时间内还没找到最快的稳定线路那么就是用这个线路，并且不再尝试新连接。
 						oconnTimeout = time.AfterFunc(1 * time.Second, func() {
-							func() {
-								defer func() { _ = recover() }()
-								resChan <- dialTimeoutRes{oconn, ErrorReporting, nil}
-							}()
+							defer func() { _ = recover() }()
+							oConnCloseMutex.Lock()
+							defer oConnCloseMutex.Unlock()
+							resChan <- dialTimeoutRes{oConn, ErrorReporting, nil}
+							oConnClose = false
 						})
 
 					}else {
@@ -220,13 +226,15 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 			}
 
 			// 最后如果连接未建立，并且有最快建立的连接，那么即使他不稳定也是用这个。
-			if ok == false && oconn != nil {
+			if ok == false && oConn != nil {
 				func() {
 					defer func() {recover()}()
-					resChan <- dialTimeoutRes{oconn, ErrorReporting, nil}
+					resChan <- dialTimeoutRes{oConn, ErrorReporting, nil}
 				}()
 				log.Printf("为 %v 找到了最快但不稳定连接 %v ，线路：%v.\r\n", ErrorReporting.DomainAddr, ErrorReporting.IpAddr, ErrorReporting.DailName)
-				oconn = nil
+				oConnCloseMutex.Lock()
+				oConnClose = false
+				oConnCloseMutex.Unlock()
 				return
 			}
 
