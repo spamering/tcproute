@@ -34,10 +34,13 @@ type DialTimeouter interface {
 filter 过滤器，确定是否使用dns解析得到的ip
 
 */
-func ChanDialTimeout(dial DialTimeouter, dialCredit int, connChan chan ConnRes, exitChan chan int, dnsResolve bool, userData interface{}, filter DialFilterer, network, address string, timeout time.Duration) (rerr error) {
+func ChanDialTimeout(dial DialTimeouter, dialCredit int, connChan chan ConnRes, exitChan chan int, dnsResolve bool, userData interface{}, filter DialFilterer, network, address string, timeout time.Duration) (err error) {
 	if filter == nil {
 		filter = NewDialFilter(nil)
 	}
+
+	var connErr error
+	connErrLock := sync.Mutex{}
 
 	myExitChan := make(chan int)
 
@@ -152,7 +155,9 @@ func ChanDialTimeout(dial DialTimeouter, dialCredit int, connChan chan ConnRes, 
 					n := time.Now()
 					c, err := dial.DialTimeout("tcp", ipAddr, timeout)
 					if err != nil {
-						rerr = err
+						connErrLock.Lock()
+						connErr = err
+						connErrLock.Unlock()
 						continue
 					}
 					atomic.AddUint32(&okCount, 1)
@@ -171,6 +176,7 @@ func ChanDialTimeout(dial DialTimeouter, dialCredit int, connChan chan ConnRes, 
 		if okCount > 0 {
 			return nil
 		}
-		return
+
+		return connErr
 	}
 }
