@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"strconv"
 	"log"
+	"sync/atomic"
 )
 
 const forwardBufSize = 8192 // 转发缓冲区大小
@@ -202,6 +203,7 @@ func (h*hSocksHandle)handleSocks5() error {
 
 	fCount := forwardCount{} //转发计数
 
+
 	startTime := time.Now()
 	err = forwardConn(conn, oConn, handlerTimeoutForward, &fCount)
 	endTime := time.Now()
@@ -210,14 +212,15 @@ func (h*hSocksHandle)handleSocks5() error {
 	// 连接被重置、未收到任何数据
 	if oConnErrorReporting != nil {
 		connTime := endTime.Sub(startTime)
-
+		lsend := atomic.LoadUint64(&fCount.send)
+		lrecv := atomic.LoadUint64(&fCount.recv)
 
 		// 连接建立时间小于60秒，并且未收到任何数据
-		if connTime < 60 * time.Second && fCount.recv == 0 && fCount.send > 50 {
+		if connTime < 60 * time.Second && lrecv == 0 && lsend > 50 {
 			oConnErrorReporting.Report(ErrConnTypeRead0)
 		}
 
-		if connTime < 1 * time.Second && fCount.recv < 1024 && prot == 443 && fCount.send > 50 {
+		if connTime < 1 * time.Second && lrecv < 1024 && prot == 443 && lsend > 50 {
 			oConnErrorReporting.Report(ErrConnTypeRead0)
 		}
 	}
