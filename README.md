@@ -2,13 +2,16 @@
 
 [![Build Status](https://travis-ci.org/GameXG/TcpRoute2.svg)](https://travis-ci.org/GameXG/TcpRoute2)
 
-golang 重写的 https://github.com/GameXG/TcpRoute 。
 
-TcpRoute, TCP 层的路由器。对于 TCP 连接自动从多个线路(允许任意嵌套)、多个域名解析结果中选择最优线路。
+[TcpRoute](https://github.com/GameXG/TcpRoute), TCP 层的路由器。对于 TCP 连接自动从多个线路(允许任意嵌套)、多个域名解析结果中选择最优线路。TcpRoute2 是 golang 重写的版本。
 
 通过 socks5 代理协议对外提供服务。
 
-通过 https://github.com/GameXG/ProxyClient 实现上层代理支持，目前支持直连、socks4、socks4a、socks5、http、https、ss 代理线路。
+通过 [ProxyClient](https://github.com/GameXG/ProxyClient) 实现上层代理支持，目前支持直连、socks4、socks4a、socks5、http、https、ss 代理线路。
+
+## 安装
+
+在 [releases](https://github.com/GameXG/TcpRoute2/releases) 页面有二进制发布的可执行文件。根据系统下载对应的文件，并在同一目录创建 config.toml 配置文件即可。
 
 ## 配置
 
@@ -24,12 +27,19 @@ TcpRoute, TCP 层的路由器。对于 TCP 连接自动从多个线路(允许任
 addr="127.0.0.1:7070"
 
 
-# 上层代理
+# 可以使用的线路列表
 # 连接网络时会自动选择最快的线路。
-# 注意，直连也需要提供，否则不会通过直连访问网络。
+# 注意，直连线路也需要提供，否则不会通过直连访问网络。
 
 [[UpStreams]]
 Name="direct"
+ProxyUrl="direct://0.0.0.0:0000"
+# 是否执行本地dns解析
+DnsResolve=true
+
+
+[[UpStreams]]
+Name="https-proxy.com"
 # 代理地址
 # 通过 https://github.com/GameXG/ProxyClient 实现的代理功能
 # 目前支持以下格式
@@ -40,15 +50,9 @@ Name="direct"
 # socks5 代理 socks5://123.123.123.123:5050?upProxy=http://145.2.1.3:8080
 # ss 代理 ss://method:passowd@123.123.123:5050
 # 直连 direct://0.0.0.0:0000/?LocalAddr=123.123.123.123:0
-ProxyUrl="direct://0.0.0.0:0000"
-# 是否执行本地dns解析
-DnsResolve=true
-
-
-[[UpStreams]]
-Name="https-proxy.com"
 ProxyUrl="https://www.proxy.com:443"
 DnsResolve=false
+
 # 线路的信誉度，不会通过信誉度低于0的代理建立明文协议的连接(http、ftp、stmp等)
 Credit=0
 
@@ -56,7 +60,7 @@ Credit=0
 # 国内 baidu、qq tcping一般是30ms，这里设置为80ms(0.08秒)。
 # 可以使得大部分国内站点不会尝试通过代理访问，降低上游代理的负担。
 # 0.08秒的延迟很低，并且建立连接后会缓存最快连接记录，不会再次延迟，所以不建议删除。
-Sleep=500
+Sleep=80
 
 # 修正延迟
 # ss 协议并不会报告是否连接到了目标网站，所以无法获得真实的到目标网站的 tcpping。
