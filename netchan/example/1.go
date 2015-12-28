@@ -19,15 +19,12 @@ func main() {
 	}
 
 	go func() {
-		netchan.ChanDialTimeout(dial, connChan, exitChan, true, "tcp", "www.163.com:80", 5 * time.Second)
+		netchan.ChanDialTimeout(dial, 0, connChan, exitChan, true, nil, nil, "tcp", "www.163.com:80", 5 * time.Second)
 		close(connChan)
 	}()
 
 	for c := range connChan {
-
 		fmt.Printf("目标 %v 耗时 %v 。\r\n", c.Conn.RemoteAddr(), c.Ping)
-
 	}
-
 
 }
