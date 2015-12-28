@@ -5,8 +5,8 @@ import (
 	"net"
 	"testing"
 	"time"
-
 	"github.com/gamexg/proxyclient"
+	"os"
 )
 
 
@@ -50,7 +50,7 @@ func TestHttpProxy(t *testing.T) {
 
 	okChan := make(chan int)
 
-	time.AfterFunc(10*time.Second, func() { okChan <- 0 })
+	time.AfterFunc(10 * time.Second, func() { okChan <- 0 })
 
 	go func() {
 		c, err := l.Accept()
@@ -87,6 +87,10 @@ func TestHttpProxy(t *testing.T) {
 }
 
 func TestHttpsProxy(t *testing.T) {
+	if _, err := os.Stat("tls.crt"); err != nil {
+		t.Skip("不存在 crt ，跳过 https 单元测试。")
+	}
+
 	httpProxy, err := NewHttpServer("")
 	if err != nil {
 		t.Fatal(err)
