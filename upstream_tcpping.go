@@ -43,7 +43,7 @@ type chanDialTimeoutUserData struct {
 
 
 func NewTcppingUpStream(srv *Server) (*tcppingUpStream) {
-	tUpstream := tcppingUpStream{srv, make([]DialClient, 0, 5), NewUpStreamConnCache(srv)}
+	tUpstream := tcppingUpStream{srv, make([]DialClient, 0, 5), NewUpStreamConnCache(srv.errConn)}
 	return &tUpstream
 }
 

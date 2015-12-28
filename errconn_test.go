@@ -10,6 +10,9 @@ func TestErrConn(t *testing.T) {
 	e.AddErrLog("d2", "www.163.com:80", "1.2.3.5:80", ErrConnTypeRead0)
 	e.AddErrLog("d3", "www.163.com:80", "1.2.3.6:80", ErrConnTypeRead0)
 	e.AddErrLog("d3", "www.163.com:80", "1.2.3.4:80", ErrConnTypeRead0)
+	e.AddErrLog("d3", "www.163.com:80", "1.2.3.4:80", ErrConnTypeRead0)
+	e.AddErrLog("d3", "www.163.com:80", "1.2.3.4:80", ErrConnTypeRead0)
+	e.AddErrLog("d3", "www.163.com:80", "1.2.3.4:80", ErrConnTypeRead0)
 	e.AddErrLog("d4", "www.163.com:80", "www.163.com:80", ErrConnTypeRead0)
 	e.AddErrLog("d5", "www.163.com:80", "www.163.com:80", ErrConnTypeRead0)
 

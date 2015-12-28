@@ -9,9 +9,6 @@ import (
 	"github.com/gamexg/proxyclient"
 )
 
-type Flusher interface {
-	Flush() error
-}
 
 func TestHttpProxy(t *testing.T) {
 	httpProxy, err := NewHttpServer(":18048")

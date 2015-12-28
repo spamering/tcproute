@@ -19,7 +19,7 @@ func TestUpStreamCache(t *testing.T) {
 		t.Error("错误")
 	}
 
-	if item.dial!=nil||item.dialName!="t1"||item.DomainAddr!="www.163.com:80"||item.IpAddr!="1.2.3.4:80"||item.TcpPing!=3*time.Millisecond{
+	if item.dialClient!=nil||item.dialName!="t1"||item.DomainAddr!="www.163.com:80"||item.IpAddr!="1.2.3.4:80"||item.TcpPing!=3*time.Millisecond{
 		t.Error("错误")
 	}
 
@@ -29,7 +29,7 @@ func TestUpStreamCache(t *testing.T) {
 	if err != nil {
 		t.Error("错误")
 	}
-	if item2.dial!=nil||item2.dialName!="t1"||item2.DomainAddr!="www.163.com:80"||item2.IpAddr!="2.3.4.5:80"||item2.TcpPing!=2*time.Millisecond{
+	if item2.dialClient!=nil||item2.dialName!="t1"||item2.DomainAddr!="www.163.com:80"||item2.IpAddr!="2.3.4.5:80"||item2.TcpPing!=2*time.Millisecond{
 		t.Error("错误")
 	}
 
@@ -39,7 +39,7 @@ func TestUpStreamCache(t *testing.T) {
 	if err != nil {
 		t.Error("错误")
 	}
-	if item3.dial!=nil||item3.dialName!="t1"||item3.DomainAddr!="www.163.com:80"||item3.IpAddr!="1.2.3.4:80"||item3.TcpPing!=1*time.Millisecond{
+	if item3.dialClient!=nil||item3.dialName!="t1"||item3.DomainAddr!="www.163.com:80"||item3.IpAddr!="1.2.3.4:80"||item3.TcpPing!=1*time.Millisecond{
 		t.Error("错误")
 	}
 
@@ -50,7 +50,7 @@ func TestUpStreamCache(t *testing.T) {
 	if err != nil {
 		t.Error("错误")
 	}
-	if item4.dial!=nil||item4.dialName!="t2"||item4.DomainAddr!="www.163.com:80"||item4.IpAddr!="2.3.4.5:80"||item4.TcpPing!=0*time.Millisecond{
+	if item4.dialClient!=nil||item4.dialName!="t2"||item4.DomainAddr!="www.163.com:80"||item4.IpAddr!="2.3.4.5:80"||item4.TcpPing!=0*time.Millisecond{
 		t.Error("错误")
 	}
 

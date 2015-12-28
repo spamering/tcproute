@@ -7,6 +7,7 @@ import (
 )
 
 // 切换器
+// 这只是一个切换器演示。
 type baseUpStream struct {
 	srv      *Server
 	pc       proxyclient.ProxyClient

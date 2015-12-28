@@ -120,7 +120,7 @@ func (ec*ErrConnService)Check(dialName, domainAddr, ipAddr string) bool {
 		d.refresh()
 	}
 
-	if d.cache.dial[dialName] >= 10 {
+	if d.cache.dial[dialName] >= 5 {
 		fmt.Printf("%v 的 %v 线路的尝试连接IP %v ，由于线路属于经常故障线路，忽略本连接。\r\n", domainAddr, dialName, ipAddr)
 		return false
 	}

@@ -1,18 +1,20 @@
 package netchan
 import (
 	"testing"
-	"fmt"
-	"time"
 )
 
 func Test1(t *testing.T) {
 	q := NewDnsQuery("www.163.com")
 	defer q.Stop()
 
-	for v := range q.RecordChan {
-		fmt.Println(*v)
+	i:=0
+
+	for _ = range q.RecordChan {
+		i++
 	}
 
-	time.Sleep(100*time.Second)
+	if i==0{
+		t.Fatal("dns")
+	}
 }
 

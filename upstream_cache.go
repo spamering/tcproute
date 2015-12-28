@@ -19,7 +19,7 @@ type upStreamConnCacheAddrItem struct {
 	IpAddr     string        // IP:端口 格式的地址
 	DomainAddr string        // 域名:端口 格式的地址
 	TcpPing    time.Duration // 建立连接耗时
-	dialClient *DialClient    // 使用的线路
+	dialClient *DialClient   // 使用的线路
 	dialName   string
 }
 
@@ -36,18 +36,22 @@ type upStreamConnCacheDomainItem struct {
 	itemDict   map[string]*upStreamConnCacheAddrItem // key = "%v-%v" % dialName-Ipaddr
 }
 
-// 连接缓存
-type upStreamConnCache struct {
-					   //domains map[string]upStreamConnCacheDomainItem
-	domains *lru.Cache // 域名 map ，类型是 *upStreamConnCacheDomainItem
-	srv     *Server
-	rwm     sync.RWMutex
+type ErrCheck interface {
+	Check(dialName, domainAddr, ipAddr string) bool
 }
 
-func NewUpStreamConnCache(srv  *Server) *upStreamConnCache {
+// 连接缓存
+type upStreamConnCache struct {
+						//domains map[string]upStreamConnCacheDomainItem
+	domains  *lru.Cache // 域名 map ，类型是 *upStreamConnCacheDomainItem
+	errCheck ErrCheck
+	rwm      sync.RWMutex
+}
+
+func NewUpStreamConnCache(errCheck ErrCheck) *upStreamConnCache {
 	c := upStreamConnCache{}
 	c.domains = lru.New(200)
-	c.srv = srv
+	c.errCheck = errCheck
 	return &c
 }
 
@@ -129,7 +133,7 @@ func (c*upStreamConnCache)GetOptimal(domainAddr string) (upStreamConnCacheAddrIt
 	}
 
 	for _, i := range item.itemsList {
-		if c.srv.errConn.Check(i.dialName, i.DomainAddr, i.IpAddr) == true {
+		if c.errCheck == nil || c.errCheck.Check(i.dialName, i.DomainAddr, i.IpAddr) == true {
 			return *i, nil
 		}
 	}

@@ -8,12 +8,11 @@ import (
 // handler 切换器
 // 会尝试使用各种类型的 Handler。
 type switchHandlerNewer struct {
-	srv           *Server
 	handlerNewers []HandlerNewer // 子处理器列表
 }
 
-func NewSwitchHandlerNewer(srv *Server) *switchHandlerNewer {
-	return &switchHandlerNewer{srv, make([]HandlerNewer, 0, 10)}
+func NewSwitchHandlerNewer() *switchHandlerNewer {
+	return &switchHandlerNewer{ make([]HandlerNewer, 0, 10)}
 }
 
 func (sh *switchHandlerNewer)AppendHandlerNewer(h HandlerNewer) {

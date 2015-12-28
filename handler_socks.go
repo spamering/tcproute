@@ -15,7 +15,7 @@ const forwardBufSize = 8192 // 转发缓冲区大小
 
 // socks 服务器
 type hSocksServer struct {
-	srv *Server
+	upStream UpStreamDial
 }
 
 type hSocksHandle struct {
@@ -23,8 +23,8 @@ type hSocksHandle struct {
 	conn         net.Conn
 }
 
-func NewSocksHandlerNewer(srv *Server) HandlerNewer {
-	return &hSocksServer{srv}
+func NewSocksHandlerNewer(upStream UpStreamDial) HandlerNewer {
+	return &hSocksServer{upStream}
 }
 
 // 尝试创建 socks 处理器
@@ -157,7 +157,7 @@ func (h*hSocksHandle)handleSocks5() error {
 	conn.SetDeadline(time.Now().Add(handlerTimeoutForward))
 
 	// 连接目标网站
-	upStrrem := h.hSocksServer.srv.upStream
+	upStrrem := h.hSocksServer.upStream
 	rAddr := net.JoinHostPort(host, strconv.FormatUint(uint64(prot), 10))
 	oConn, oConnErrorReporting, err := upStrrem.DialTimeout("tcp", rAddr, handlerNewTimeout)
 	if err != nil {

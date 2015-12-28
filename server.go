@@ -35,8 +35,8 @@ func NewServer(addr string) *Server {
 
 
 	// 处理器
-	h := NewSwitchHandlerNewer(&srv)
-	hs := NewSocksHandlerNewer(&srv)
+	h := NewSwitchHandlerNewer()
+	hs := NewSocksHandlerNewer(srv.upStream)
 	h.AppendHandlerNewer(hs)
 	srv.hNewer = h
 

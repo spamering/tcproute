@@ -96,10 +96,17 @@ func searchBlackIP() {
 }
 
 func (dq*DnsQuery) query() {
+	wg:=sync.WaitGroup{}
 	for _, q := range queries {
 		q := q
-		go q.query(dq.Domain, dq.RecordChan, dq.exitChan)
+		wg.Add(1)
+		go func() {
+			q.query(dq.Domain, dq.RecordChan, dq.exitChan)
+			wg.Done()
+		}()
 	}
+	wg.Wait()
+	close(dq.RecordChan)
 }
 
 // 返回 DNS 记录信道及取消信道
