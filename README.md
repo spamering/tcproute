@@ -1,5 +1,7 @@
 # TcpRoute2
 
+[![Build Status](https://travis-ci.org/GameXG/TcpRoute2.svg)](https://travis-ci.org/GameXG/TcpRoute2)
+
 golang 重写的 https://github.com/GameXG/TcpRoute 。
 
 TcpRoute, TCP 层的路由器。对于 TCP 连接自动从多个线路(允许任意嵌套)、多个域名解析结果中选择最优线路。
