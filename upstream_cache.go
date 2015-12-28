@@ -45,7 +45,7 @@ type upStreamConnCache struct {
 						//domains map[string]upStreamConnCacheDomainItem
 	domains  *lru.Cache // 域名 map ，类型是 *upStreamConnCacheDomainItem
 	errCheck ErrCheck
-	rwm      sync.RWMutex
+	m      sync.Mutex
 }
 
 func NewUpStreamConnCache(errCheck ErrCheck) *upStreamConnCache {
@@ -57,8 +57,8 @@ func NewUpStreamConnCache(errCheck ErrCheck) *upStreamConnCache {
 
 // 更新记录
 func (c*upStreamConnCache)Updata(domainAddr, ipAddr string, tcpping time.Duration, dialClient *DialClient, dialName string) {
-	c.rwm.Lock()
-	defer c.rwm.Unlock()
+	c.m.Lock()
+	defer c.m.Unlock()
 
 	// 先取得结果
 	item := c.get(domainAddr)
@@ -120,8 +120,8 @@ func (c*upStreamConnCache)set(domainAddr string, item  *upStreamConnCacheDomainI
 // 返回值是值拷贝，不需要担心多线程复用问题
 // 会尝试检查是否是是异常地址
 func (c*upStreamConnCache)GetOptimal(domainAddr string) (upStreamConnCacheAddrItem, error) {
-	c.rwm.RLock()
-	defer c.rwm.RUnlock()
+	c.m.Lock()
+	defer c.m.Unlock()
 
 	item := c.get(domainAddr)
 	if item == nil {
@@ -143,8 +143,8 @@ func (c*upStreamConnCache)GetOptimal(domainAddr string) (upStreamConnCacheAddrIt
 // 删除某个域的缓存记录
 // 在每次进行全部连接重试时将会清空旧的缓存内容。
 func (c*upStreamConnCache)Del(domainAddr string) {
-	c.rwm.Lock()
-	defer c.rwm.Unlock()
+	c.m.Lock()
+	defer c.m.Unlock()
 
 	c.domains.Remove(domainAddr)
 }
