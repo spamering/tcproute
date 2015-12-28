@@ -7,8 +7,8 @@ import (
 	"io"
 	"bytes"
 	"encoding/binary"
-	"github.com/golang/glog"
 	"strconv"
+	"log"
 )
 
 const forwardBufSize = 8192 // 转发缓冲区大小
@@ -179,7 +179,7 @@ func (h*hSocksHandle)handleSocks5() error {
 		switch len(rIp) {
 		case 4, 16:
 		default:
-			glog.Warning("未知的IP地址类型，IP：%v", rIp)
+			log.Printf("未知的IP地址类型，IP：%v", rIp)
 			rIp = make([]byte, 4)
 		}
 		binary.BigEndian.PutUint16(rPort, uint16(v.Port))

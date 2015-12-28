@@ -3,9 +3,8 @@ package main
 import (
 	"time"
 	"net"
-	"github.com/golang/glog"
-	"fmt"
 	"io"
+	"log"
 )
 
 //
@@ -26,12 +25,22 @@ type Server struct {
 	errConn  *ErrConnService //错误连接统计
 }
 
-func NewServer(addr string) *Server {
+func NewServer(addr string, upStream UpStreamDial) *Server {
 	srv := Server{}
 	srv.Addr = addr
 
 	// 错误连接记录
 	srv.errConn = NewErrConnService()
+
+	if upStream == nil {
+		// 基本上层代理
+		localUpStream, err := NewBaseUpStream(&srv)
+		if err != nil {
+			panic(err)
+		}
+		upStream = localUpStream
+	}
+	srv.upStream = upStream
 
 
 	// 处理器
@@ -39,13 +48,6 @@ func NewServer(addr string) *Server {
 	hs := NewSocksHandlerNewer(srv.upStream)
 	h.AppendHandlerNewer(hs)
 	srv.hNewer = h
-
-	// 基本上层代理
-	upStream, err := NewBaseUpStream(&srv)
-	if err != nil {
-		panic(err)
-	}
-	srv.upStream = upStream
 
 	return &srv
 
@@ -82,7 +84,7 @@ func (srv *Server) Server() error {
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				glog.Warning("Accept error: %v; retrying in %v", e, tempDelay)
+				log.Printf("Accept error: %v; retrying in %v", e, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			}
@@ -97,7 +99,7 @@ func (srv *Server) Server() error {
 func (srv *Server) handlerConn(conn net.Conn) {
 	defer func() {
 		if err := recover(); err != nil {
-			glog.Error("work failed:", err)
+			log.Printf("work failed:", err)
 		}
 	}()
 	// 是这里调用关闭还是 Handler() 负责？
@@ -111,14 +113,14 @@ func (srv *Server) handlerConn(conn net.Conn) {
 
 	h, _, err := srv.hNewer.New(conn)
 	if h == nil {
-		glog.Warning(fmt.Sprintf("无法识别请求的协议类型，远端地址：%v，近端地址：%v，详细错误：%v", conn.RemoteAddr(), conn.LocalAddr(), err))
+		log.Printf("无法识别请求的协议类型，远端地址：%v，近端地址：%v，详细错误：%v", conn.RemoteAddr(), conn.LocalAddr(), err)
 		return
 	}
 
 	conn.SetDeadline(time.Now().Add(handlerBaseTimeout))
 	if err := h.Handle(); err != nil {
 		if err != io.EOF {
-			glog.Warning("协议处理错误：", err)
+			log.Printf("协议处理错误：", err)
 		}
 	}
 }

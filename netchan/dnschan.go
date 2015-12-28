@@ -4,7 +4,7 @@ import (
 	"net"
 	"sync"
 	"fmt"
-	"github.com/golang/glog"
+	"log"
 )
 
 var queries []queryer
@@ -18,7 +18,6 @@ type DnsQuery struct {
 						// queries    []queryer
 	exitChan   chan int
 	Domain     string
-	sleepChan  chan int // 延迟信道
 }
 
 // 表示 DNS 记录
@@ -85,7 +84,7 @@ func searchBlackIP() {
 			defer rwm.Unlock()
 			blackIP = bIP
 		}()
-		glog.Info("发现异常IP：", blackIP)
+		log.Println("发现异常IP：", blackIP)
 	}
 
 	run()
@@ -96,42 +95,52 @@ func searchBlackIP() {
 }
 
 func (dq*DnsQuery) query() {
-	wg:=sync.WaitGroup{}
+	wg := sync.WaitGroup{}
 	for _, q := range queries {
 		q := q
 		wg.Add(1)
 		go func() {
+			defer func() {
+				e := recover()
+				if e != nil {
+					log.Println("query panic:", e)
+				}
+			}()
+			defer wg.Done()
+
 			q.query(dq.Domain, dq.RecordChan, dq.exitChan)
-			wg.Done()
 		}()
 	}
 	wg.Wait()
-	close(dq.RecordChan)
+
+	func() {
+		defer func() { recover()}()
+		close(dq.RecordChan)
+	}()
 }
 
 // 返回 DNS 记录信道及取消信道
 func NewDnsQuery(domain string) *DnsQuery {
-	q := DnsQuery{make(chan *DnsRecord), make(chan int), domain, make(chan int, 10)}
+	q := DnsQuery{make(chan *DnsRecord), make(chan int), domain}
 	go q.query()
 	return &q
 }
 
 func (dq*DnsQuery) Stop() {
-	defer func() {
-		_ = recover()
+	func() {
+		defer func() { recover()}()
+		close(dq.exitChan)
 	}()
-	close(dq.exitChan)
-	close(dq.RecordChan)
-	for _ = range dq.sleepChan {
-	}
+
+	func() {
+		defer func() { recover()}()
+		close(dq.RecordChan)
+	}()
 }
 
 type systemDNS string
-func (s *systemDNS)query(domain string, RecordChan chan *DnsRecord, ExitChan chan int) {
-	defer func() {
-		_ = recover()
-	}()
 
+func (s *systemDNS)query(domain string, RecordChan chan *DnsRecord, ExitChan chan int) {
 	select {
 	case <-ExitChan:
 		return
@@ -159,7 +168,7 @@ func (s *systemDNS)query(domain string, RecordChan chan *DnsRecord, ExitChan cha
 			// 系统dns解析可以全部抛弃，但是全球web分布式dns解析就不能这么干了
 			// 因为可能只是某个地区有问题，不能把所有地区一竿子全部打死。
 			if blackIP[ipString] == true {
-				glog.Warning(fmt.Sprintf("[systemDNS]解析 %v 时发现异常IP %v ，放弃本次 DNS 解析结果。", domain, ipString))
+				log.Printf("[systemDNS]解析 %v 时发现异常IP %v ，放弃本次 DNS 解析结果。", domain, ipString)
 				ipsString = make([]string, 0)
 				return
 			}
@@ -168,8 +177,11 @@ func (s *systemDNS)query(domain string, RecordChan chan *DnsRecord, ExitChan cha
 		}
 	}()
 
-	for _, ipString := range ipsString {
-		RecordChan <- &DnsRecord{ipString, 0}
-	}
+	func() {
+		defer func() {_=recover()}()
+		for _, ipString := range ipsString {
+			RecordChan <- &DnsRecord{ipString, 0}
+		}
+	}()
 }
 

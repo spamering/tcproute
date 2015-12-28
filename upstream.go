@@ -32,7 +32,8 @@ func (er*UpStreamErrorReportingBase) Report(t ErrConnType) {
 	er.errConnServer.AddErrLog(er.DailName, er.DomainAddr, er.IpAddr, t)
 }
 
-// 错误报告
+// dial 提供的错误报告接口
+// 当 dial 调用者认为链接有问题时将调用这个接口向 连接提供者报告错误。
 type UpStreamErrorReporting interface {
 	// 使用者认为连接有问题时调用
 	Report(t ErrConnType)
@@ -43,6 +44,7 @@ type UpStreamDial interface {
 	// 建立新连接
 	// 如果没有实现 UpStreamErrorReporting 可以返回 nil
 	DialTimeout(network, address string, timeout time.Duration) (net.Conn, UpStreamErrorReporting, error)
+
 
 
 }

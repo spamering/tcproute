@@ -2,7 +2,6 @@
 package main
 
 import (
-	"github.com/golang/glog"
 	"github.com/koding/multiconfig"
 	"time"
 	"flag"
@@ -27,10 +26,6 @@ type ServerConfigUpStream struct {
 
 
 func main() {
-	defer glog.Flush()
-	//os.Setenv("GLOG_logtostderr", "1")
-	//os.Setenv("GLOG_stderrthreshold", "0")
-
 	printVer :=	flag.Bool("version", false, "print version")
 	config_path := flag.String("config", "config.toml", "配置文件路径")
 	flag.Parse()
@@ -45,18 +40,20 @@ func main() {
 	serverConfig := new(ServerConfig)
 	m.MustLoad(serverConfig)
 
-	// 服务器监听
-	srv := NewServer(serverConfig.Addr)
-
 	// 创建 tcpping 上层代理
-	upStream := NewTcppingUpStream(srv)
-	srv.upStream = upStream
+	upStream := NewTcppingUpStream()
 
 	for _, up := range serverConfig.UpStreams {
 		if err := upStream.AddUpStream(up.Name, up.ProxyUrl, up.DnsResolve, up.Credit, time.Duration(up.Sleep) * time.Millisecond, time.Duration(up.CorrectDelay) * time.Millisecond); err != nil {
 			panic(err)
 		}
 	}
+
+	// 服务器监听
+	srv := NewServer(serverConfig.Addr,upStream)
+
+
+
 
 	// DNS 配置
 

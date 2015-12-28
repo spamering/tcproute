@@ -5,9 +5,9 @@ import (
 	"github.com/gamexg/proxyclient"
 	"fmt"
 	"github.com/gamexg/TcpRoute2/netchan"
-	"github.com/golang/glog"
 	"strconv"
 	"sync"
+	"log"
 )
 
 /*
@@ -29,7 +29,7 @@ type DialClient struct {
 
 // TcpPing 方式选择最快连接上的。
 type tcppingUpStream struct {
-	srv       *Server
+	errConn   *ErrConnService
 	dc        []DialClient
 	connCache *upStreamConnCache
 }
@@ -42,8 +42,13 @@ type chanDialTimeoutUserData struct {
 }
 
 
-func NewTcppingUpStream(srv *Server) (*tcppingUpStream) {
-	tUpstream := tcppingUpStream{srv, make([]DialClient, 0, 5), NewUpStreamConnCache(srv.errConn)}
+func NewTcppingUpStream() (*tcppingUpStream) {
+
+	errConn := NewErrConnService()
+	connCache := NewUpStreamConnCache(errConn)
+
+	tUpstream := tcppingUpStream{errConn, make([]DialClient, 0, 5), connCache}
+
 	return &tUpstream
 }
 
@@ -99,7 +104,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 		if err == nil {
 			fmt.Printf("缓存命中：%v 代理：%v IP：%v \r\n", address, item.dialName, item.IpAddr)
 			go su.connCache.Updata(address, item.IpAddr, time.Now().Sub(n) + item.dialClient.correctDelay, item.dialClient, item.dialName)
-			ErrorReporting := &UpStreamErrorReportingBase{su.srv.errConn, item.dialName, item.DomainAddr, item.IpAddr}
+			ErrorReporting := &UpStreamErrorReportingBase{su.errConn, item.dialName, item.DomainAddr, item.IpAddr}
 			return c, ErrorReporting, nil
 		} else {
 			fmt.Printf("缓存连接失败：%v 代理：%v IP：%v err:%v \r\n", address, item.dialName, item.IpAddr, err)
@@ -141,7 +146,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 				userData := chanDialTimeoutUserData{d.name, address, &d}
 				cerr := netchan.ChanDialTimeout(d.pc, d.dialCredit, connChan, exitChan, d.dnsResolve, &userData, nil, network, address, timeout)
 				if cerr != nil {
-					glog.Info(fmt.Sprintf("线路 %v 连接 %v 失败，错误：%v", d.name, address, cerr))
+					log.Printf("线路 %v 连接 %v 失败，错误：%v", d.name, address, cerr)
 				}
 			}()
 		}
@@ -179,10 +184,10 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 				go su.connCache.Updata(userData.domainAddr, conn.IpAddr, conn.Ping + userData.dialClient.correctDelay, userData.dialClient, userData.dialName)
 
 				// 返回最快并稳定的连接
-				if ok == false && su.srv.errConn.Check(userData.dialName, userData.domainAddr, conn.IpAddr) == true {
+				if ok == false && su.errConn.Check(userData.dialName, userData.domainAddr, conn.IpAddr) == true {
 					// 找到了最快的稳定连接
 					ok = true
-					ErrorReporting = &UpStreamErrorReportingBase{su.srv.errConn, userData.dialName, userData.domainAddr, conn.IpAddr}
+					ErrorReporting = &UpStreamErrorReportingBase{su.errConn, userData.dialName, userData.domainAddr, conn.IpAddr}
 					if oconnTimeout != nil {
 						oconnTimeout.Stop()
 					}
@@ -190,7 +195,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 						defer func() { _ = recover() }()
 						resChan <- dialTimeoutRes{conn.Conn, ErrorReporting, nil}
 					}()
-					fmt.Printf("为 %v 找到了最快的稳定连接 %v ，线路：%v.\r\n", userData.domainAddr, conn.IpAddr, userData.dialName)
+					log.Printf("为 %v 找到了最快的稳定连接 %v ，线路：%v.\r\n", userData.domainAddr, conn.IpAddr, userData.dialName)
 				} else {
 					// 已经有最快稳定链接 或者 本连接不稳定。
 
@@ -198,7 +203,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 					if oconn == nil && ok == false {
 						// 如果未找到可靠连接并且本连接时最快建立的连接 就先保存下本连接等待备用。
 						oconn = conn.Conn
-						ErrorReporting = &UpStreamErrorReportingBase{su.srv.errConn, userData.dialName, userData.domainAddr, conn.IpAddr}
+						ErrorReporting = &UpStreamErrorReportingBase{su.errConn, userData.dialName, userData.domainAddr, conn.IpAddr}
 
 						// 如果一定时间内还没找到最快的稳定线路那么就是用这个线路，并且不再尝试新连接。
 						oconnTimeout = time.AfterFunc(1 * time.Second, func() {
@@ -220,7 +225,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 					defer func() {recover()}()
 					resChan <- dialTimeoutRes{oconn, ErrorReporting, nil}
 				}()
-				fmt.Printf("为 %v 找到了最快但不稳定连接 %v ，线路：%v.\r\n", ErrorReporting.DomainAddr, ErrorReporting.IpAddr, ErrorReporting.DailName)
+				log.Printf("为 %v 找到了最快但不稳定连接 %v ，线路：%v.\r\n", ErrorReporting.DomainAddr, ErrorReporting.IpAddr, ErrorReporting.DailName)
 				oconn = nil
 				return
 			}
