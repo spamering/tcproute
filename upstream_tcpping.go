@@ -165,11 +165,14 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 			ok := false // 是否已经找到最快的稳定连接
 			var oConn net.Conn // 保存最快的结果，如果全部的连接都有问题时间使用这个连接
 			oConnClose := false //oConn 是否需要关闭。
+			oConnCloseMutex := sync.Mutex{}
 			var ErrorReporting *UpStreamErrorReportingBase //错误报告（实际使用 oconn 连接如果发现问题通过本变量报告错误）
 			var oconnTimeout *time.Timer  // oconn 定时器
 
 			defer func() {
 				// 结束时函数关闭之前保存的最快的连接。
+				oConnCloseMutex.Lock()
+				defer oConnCloseMutex.Unlock()
 				if oConnClose == true {
 					oConn.Close()
 				}
@@ -210,6 +213,8 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 						// 如果一定时间内还没找到最快的稳定线路那么就是用这个线路，并且不再尝试新连接。
 						oconnTimeout = time.AfterFunc(1 * time.Second, func() {
 							defer func() { _ = recover() }()
+							oConnCloseMutex.Lock()
+							defer oConnCloseMutex.Unlock()
 							resChan <- dialTimeoutRes{oConn, ErrorReporting, nil}
 							oConnClose = false
 						})
@@ -224,6 +229,8 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 			if ok == false && oConn != nil {
 				func() {
 					defer func() {recover()}()
+					oConnCloseMutex.Lock()
+					defer oConnCloseMutex.Unlock()
 					resChan <- dialTimeoutRes{oConn, ErrorReporting, nil}
 					oConnClose = false
 					log.Printf("为 %v 找到了最快但不稳定连接 %v ，线路：%v.\r\n", ErrorReporting.DomainAddr, ErrorReporting.IpAddr, ErrorReporting.DailName)
