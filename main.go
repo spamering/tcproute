@@ -16,21 +16,21 @@ type ServerConfig struct {
 }
 
 type ServerConfigUpStream struct {
-	Name       string`default:"direct"`
-	ProxyUrl   string`default:"direct://0.0.0.0:0000"`
-	DnsResolve bool `default:"false"`
-	Credit     int `default:"0"`
-	Sleep      int `default:"0"`
-	CorrectDelay  int `default:"0"`
+	Name         string`default:""`
+	ProxyUrl     string`default:"direct://0.0.0.0:0000"`
+	DnsResolve   bool `default:"false"`
+	Credit       int `default:"0"`
+	Sleep        int `default:"0"`
+	CorrectDelay int `default:"0"`
 }
 
 
 func main() {
-	printVer :=	flag.Bool("version", false, "print version")
+	printVer := flag.Bool("version", false, "print version")
 	config_path := flag.String("config", "config.toml", "配置文件路径")
 	flag.Parse()
 
-	if *printVer{
+	if *printVer {
 		fmt.Println("TcpRoute2 version", version)
 		return
 	}
@@ -44,13 +44,17 @@ func main() {
 	upStream := NewTcppingUpStream()
 
 	for _, up := range serverConfig.UpStreams {
+		if up.Name == "" {
+			up.Name = up.ProxyUrl
+		}
+
 		if err := upStream.AddUpStream(up.Name, up.ProxyUrl, up.DnsResolve, up.Credit, time.Duration(up.Sleep) * time.Millisecond, time.Duration(up.CorrectDelay) * time.Millisecond); err != nil {
 			panic(err)
 		}
 	}
 
 	// 服务器监听
-	srv := NewServer(serverConfig.Addr,upStream)
+	srv := NewServer(serverConfig.Addr, upStream)
 
 
 
