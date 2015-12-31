@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-const version = "0.1.2"
+const version = "0.2.0"
 
 type ServerConfig struct {
 	Addr      string `default:":5050"`
