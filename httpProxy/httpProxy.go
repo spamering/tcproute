@@ -11,9 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-
 	"github.com/golang/glog"
-	"github.com/inconshreveable/go-vhost"
+	vhost "github.com/peacekeeper/golang-github-inconshreveable-go-vhost-dev"
 )
 
 /*
