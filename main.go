@@ -58,12 +58,9 @@ func main() {
 	// 服务器监听
 	srv := NewServer(serverConfig.Addr, upStream)
 
+	// TODO: DNS 配置
 
-
-
-	// DNS 配置
-
-	// 各端口需要的安全级别
+	// TODO: 各端口需要的安全级别
 
 	srv.ListAndServe()
 }

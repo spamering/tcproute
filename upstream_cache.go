@@ -45,7 +45,7 @@ type upStreamConnCache struct {
 						//domains map[string]upStreamConnCacheDomainItem
 	domains  *lru.Cache // 域名 map ，类型是 *upStreamConnCacheDomainItem
 	errCheck ErrCheck
-	m      sync.Mutex
+	m        sync.Mutex
 }
 
 func NewUpStreamConnCache(errCheck ErrCheck) *upStreamConnCache {

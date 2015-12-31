@@ -38,7 +38,6 @@ type chanDialTimeoutUserData struct {
 	dialName   string
 	domainAddr string // connChan 有 domainAddr 还增加这个字段的原因是使用缓存时， domainAddr 填入的是缓存的ip
 	dialClient *DialClient
-
 }
 
 
@@ -72,7 +71,6 @@ func (su*tcppingUpStream)AddUpStream(name, proxyUrl string, dnsResolve bool, cre
 	if ok {
 		if len(creditQuery) > 1 {
 			return fmt.Errorf("代理 credit 重复设置，代理url:%v", proxyUrl)
-
 		}
 		dialCreditTem, err := strconv.Atoi(creditQuery[0])
 		if err == nil {
