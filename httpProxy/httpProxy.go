@@ -119,9 +119,6 @@ func (s *TlsServer) HandlerTls(conn net.Conn) {
 	c, err := vhost.TLS(conn)
 
 	if err != nil || c.Host() != s.httpsDomain {
-		fmt.Println("err != nil || c.Host() != s.httpsDomain")
-		fmt.Println(err)
-		fmt.Println(c.Host())
 		// 不匹配，直接转发
 		defer c.Close()
 
