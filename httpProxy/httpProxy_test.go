@@ -110,10 +110,11 @@ func TestHttpsProxy(t *testing.T) {
 
 	// 执行连接
 	go func() {
-		p, err := proxyclient.NewHttpProxyClient("https", "127.0.0.1:18043", "proxy.com", true, nil, make(map[string][]string))
+		p, err := proxyclient.NewProxyClient("https://127.0.0.1:18043?insecureskipverify=true&domain=proxy.com&standardheader=true")
 		if err != nil {
 			panic(err)
 		}
+		t.Log(p.GetProxyAddrQuery())
 
 		c, err := p.Dial("tcp", "127.0.0.1:15364")
 		if err != nil {
