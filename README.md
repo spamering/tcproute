@@ -7,7 +7,7 @@
 
 通过 socks5 代理协议对外提供服务。
 
-代理功能拆分成了独立的库，详细代理url格式级选项请参见 [ProxyClient](https://github.com/GameXG/ProxyClient)，目前支持直连、socks4、socks4a、socks5、http、https、ss 代理线路。
+代理功能拆分成了独立的库，详细代理url格式级选项请参见 [ProxyClient](https://github.com/GameXG/ProxyClient)，目前支持直连、socks4、socks4a、socks5、http、https、ss 代理线路。其中 socks5 支持用户名、密码认证，http、https 支持用户名、密码基本认证。
 
 ## 安装
 
