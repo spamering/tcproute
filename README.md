@@ -35,6 +35,7 @@ addr="127.0.0.1:7070"
 Name="direct"
 ProxyUrl="direct://0.0.0.0:0000"
 # 是否执行本地dns解析
+# 设置为 true 时将会执行本地nds解析，并同时连接获得的所有ip(最高5线程)。 
 DnsResolve=true
 
 
