@@ -13,6 +13,7 @@ const version = "0.1.2"
 type ServerConfig struct {
 	Addr      string `default:":5050"`
 	UpStreams []ServerConfigUpStream
+	Config    string `default:""`
 }
 
 type ServerConfigUpStream struct {
@@ -28,6 +29,7 @@ type ServerConfigUpStream struct {
 func main() {
 	printVer := flag.Bool("version", false, "print version")
 	config_path := flag.String("config", "config.toml", "配置文件路径")
+	flag.String("addr", ":5050", "绑定地址")
 	flag.Parse()
 
 	if *printVer {
