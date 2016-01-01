@@ -120,6 +120,7 @@ func (s *TlsServer) HandlerTls(conn net.Conn) {
 	if err != nil || c.Host() != s.httpsDomain {
 		// 不匹配，直接转发
 		defer c.Close()
+		c.Free()
 
 		remoteConn, err := net.Dial("tcp", s.forwardAddr)
 		if err != nil {
@@ -131,6 +132,7 @@ func (s *TlsServer) HandlerTls(conn net.Conn) {
 		go io.Copy(c, remoteConn)
 		io.Copy(remoteConn, c)
 	} else {
+		c.Free()
 		tlsConn := tls.Server(c, s.tlsConfig)
 
 		err := tlsConn.Handshake()
