@@ -5,6 +5,9 @@ import (
 	"time"
 	"io"
 	"sync/atomic"
+	"strings"
+	"strconv"
+	"github.com/inconshreveable/go-vhost"
 )
 
 const (
@@ -12,6 +15,15 @@ const (
 	handlerTimeoutConnect = 10 * time.Second// 连接目标地址超时
 	handlerTimeoutForward = 5 * time.Minute// 转发超时 每次转发数据都会重置这个超时时间
 )
+
+const (
+	preProtocolUnknown = 0
+	preProtocolHttp = 1
+	preProtocolHttps = 2
+)
+
+var preHttpPorts = []int{80}
+var preHttpsPorts = []int{443}
 
 // NoHandle 无法处理的协议类型
 // 尝试通过 New 对连接创建 Handler 时，如果协议不匹配无法处理，那么就返回这个错误。
@@ -94,4 +106,102 @@ func _forwardConn(sConn, oConn net.Conn, timeout time.Duration, errChan chan err
 		// 记录转发计数
 		atomic.AddUint64(count, uint64(len(buf)))
 	}
+}
+
+
+// 检查是否需要预处理
+// 返回预处理的协议
+// 目前只有当 address 是 ip 地址时才会进行预处理。
+func CheckPre(network, address string) int {
+
+	if strings.HasPrefix(network, "tcp") == false {
+		// 非 tcp 协议不处理
+		return preProtocolUnknown
+	}
+
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		// 地址异常不处理
+		return preProtocolUnknown
+	}
+
+	ip := net.ParseIP(host)
+	if ip == nil {
+		// 目标地址非 ip 不处理
+		return preProtocolUnknown
+	}
+
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		// 端口异常不处理
+		return preProtocolUnknown
+	}
+
+	if in(portInt, preHttpPorts) {
+		// 匹配 http ，处理
+		return preProtocolHttp
+	}
+	if in(portInt, preHttpsPorts) {
+		// 匹配 http ，处理
+		return preProtocolHttps
+	}
+
+	return preProtocolUnknown
+}
+
+// 预处理
+// 会尝试读取 http、https头的内容获得 域名来代替 address 的host部分，端口还是使用 address 的不变。
+// 注意：要使用返回的连接代替当前连接，否则会丢失数据。
+func Pre(conn net.Conn, address string, preProtoco int) (nConn net.Conn, nAddress string, ok bool) {
+
+	httpRawHost := ""
+	tcpPort := ""
+
+	if _, tTcpPort, err := net.SplitHostPort(address); err == nil {
+		tcpPort = tTcpPort
+	}else {
+		return conn, address, false
+	}
+
+	switch preProtoco {
+	case preProtocolHttp:
+		c, err := vhost.HTTP(conn)
+		if err != nil {
+			return c, address, false
+		}
+		conn = c
+		httpRawHost = c.Host()
+		c.Free()
+
+	case preProtocolHttps:
+		c, err := vhost.TLS(conn)
+		if err != nil {
+			return c, address, false
+		}
+		conn = c
+		httpRawHost = c.Host()
+		c.Free()
+
+	default:
+		return conn, address, false
+	}
+
+	if httpRawHost == "" {
+		return conn, address, false
+	}
+
+	if tHost, _, err := net.SplitHostPort(httpRawHost); err != nil {
+		return conn, net.JoinHostPort(httpRawHost, tcpPort), true
+	}else {
+		return conn, net.JoinHostPort(tHost, tcpPort), true
+	}
+}
+
+func in(v int, l []int) bool {
+	for _, i := range (l) {
+		if i == v {
+			return true
+		}
+	}
+	return false
 }

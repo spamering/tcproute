@@ -6,14 +6,17 @@ import (
 	"time"
 	"flag"
 	"fmt"
+	"log"
 )
 
 const version = "0.2.0"
 
 type ServerConfig struct {
-	Addr      string `default:":5050"`
-	UpStreams []ServerConfigUpStream
-	Config    string `default:""`
+	Addr          string `default:":5050"`
+	UpStreams     []ServerConfigUpStream
+	PreHttpPorts  []int // 不使用默认值，好能检测配置文件是否有这个配置项
+	PreHttpsPorts []int
+	Config        string `default:""`
 }
 
 type ServerConfigUpStream struct {
@@ -41,6 +44,14 @@ func main() {
 
 	serverConfig := new(ServerConfig)
 	m.MustLoad(serverConfig)
+
+	if len(serverConfig.PreHttpPorts) == 0 && len(serverConfig.PreHttpsPorts) == 0 {
+		log.Printf("未配置是否启用 客户端dns解析纠正功能，默认将在发现浏览器进行了dns本地解析时强制改为为代理服务器进行dns解析。")
+		serverConfig.PreHttpPorts = []int{80}
+		serverConfig.PreHttpsPorts = []int{443}
+	}
+	preHttpPorts = serverConfig.PreHttpPorts
+	preHttpsPorts = serverConfig.PreHttpsPorts
 
 	// 创建 tcpping 上层代理
 	upStream := NewTcppingUpStream()
