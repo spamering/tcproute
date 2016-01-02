@@ -157,48 +157,70 @@ func (h*hSocksHandle)handleSocks5() error {
 
 	conn.SetDeadline(time.Now().Add(handlerTimeoutForward))
 
+	rAddr := net.JoinHostPort(host, strconv.FormatUint(uint64(prot), 10))
+
+	// 检查是否需要进行预处理
+	// 目前的预处理只在浏览器进行了本地DNS解析时强制转换为代理进行DNS解析。
+	preProtocol := CheckPre("tcp", rAddr)
+	if preProtocol != preProtocolUnknown {
+		// 如果需要预处理，那么会先给客户端发出已连接成功的回应来尝试获得客户端发出的请求头进行预处理
+		if _, err := conn.Write([]byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}); err != nil {
+			return fmt.Errorf("回应客户端命令失败：%v", err)
+		}
+		nConn, nAddress, ok := Pre(conn, rAddr, preProtocol)
+		if ok {
+			log.Printf("[强制代理服务器DNS解析] 对目的地址是 %v 的请求进行了重定向，新目标：%v", rAddr, nAddress)
+		}
+		conn = nConn
+		rAddr = nAddress
+	}
+
 	// 连接目标网站
 	upStrrem := h.hSocksServer.upStream
-	rAddr := net.JoinHostPort(host, strconv.FormatUint(uint64(prot), 10))
 	oConn, oConnErrorReporting, err := upStrrem.DialTimeout("tcp", rAddr, handlerNewTimeout)
 	if err != nil {
 		conn.SetDeadline(time.Now().Add(handlerTimeoutHello))
-		conn.Write([]byte{0x05, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+		if preProtocol == preProtocolUnknown {
+			conn.Write([]byte{0x05, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+		}
 		return fmt.Errorf("无法连接目标网站( %v )，详细错误：%v", rAddr, err)
 	}
 	defer oConn.Close()
 
-	// 获得远端的 IP 及端口
-	rIp := make([]byte, 4, 16)
-	rPort := make([]byte, 2)
-	if v, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
-		if ip4 := v.IP.To4(); ip4 != nil {
-			rIp = []byte(ip4)
-		}else {
-			rIp = []byte(v.IP)
+	// 如果进行了预处理就不用在发出已经建立连接的回应了，预处理时已经发出了。
+	if preProtocol == preProtocolUnknown {
+		// 获得远端的 IP 及端口
+		rIp := make([]byte, 4, 16)
+		rPort := make([]byte, 2)
+		if v, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
+			if ip4 := v.IP.To4(); ip4 != nil {
+				rIp = []byte(ip4)
+			}else {
+				rIp = []byte(v.IP)
+			}
+			switch len(rIp) {
+			case 4, 16:
+			default:
+				log.Printf("未知的IP地址类型，IP：%v", rIp)
+				rIp = make([]byte, 4)
+			}
+			binary.BigEndian.PutUint16(rPort, uint16(v.Port))
 		}
-		switch len(rIp) {
-		case 4, 16:
-		default:
-			log.Printf("未知的IP地址类型，IP：%v", rIp)
-			rIp = make([]byte, 4)
+
+		// 生成返回的消息
+		b = b[:0]
+		b = append(b, 0x05, 0x00, 0x00)
+		if len(rIp) == 4 {
+			b = append(b, 0x01)
+		} else {
+			b = append(b, 0x04)
 		}
-		binary.BigEndian.PutUint16(rPort, uint16(v.Port))
-	}
+		b = append(b, rIp...)
+		b = append(b, rPort...)
 
-	// 生成返回的消息
-	b = b[:0]
-	b = append(b, 0x05, 0x00, 0x00)
-	if len(rIp) == 4 {
-		b = append(b, 0x01)
-	} else {
-		b = append(b, 0x04)
-	}
-	b = append(b, rIp...)
-	b = append(b, rPort...)
-
-	if _, err := conn.Write(b); err != nil {
-		return fmt.Errorf("回应客户端命令失败：%v", err)
+		if _, err := conn.Write(b); err != nil {
+			return fmt.Errorf("回应客户端命令失败：%v", err)
+		}
 	}
 
 	fCount := forwardCount{} //转发计数
