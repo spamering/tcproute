@@ -10,12 +10,13 @@ import (
 var queries []queryer
 var blackIP = make(map[string]bool)
 var rwm = sync.RWMutex{}
+var HostsDns *hostsDns
 
 // 表示dns 查询
 type DnsQuery struct {
-						// 返回dns查询结果
+	// 返回dns查询结果
 	RecordChan chan *DnsRecord
-						// queries    []queryer
+	// queries    []queryer
 	exitChan   chan int
 	Domain     string
 }
@@ -44,6 +45,17 @@ func init() {
 
 	sysDns := systemDNS("")
 	queries = append(queries, &sysDns)
+
+	hDns, err := NewHostsDns(&DnschanHostsConfig{BashPath:"./",
+		Hostss:make([]*DnschanHostsConfigHosts, 0),
+		CheckInterval:1 * time.Second,
+	})
+	if err != nil {
+		panic(err)
+	}
+	queries = append(queries, hDns)
+	HostsDns = hDns
+
 	/*
 	httpDns, err := NewHttpDns("http://127.0.0.1:5353/httpdns")
 	if err != nil {
@@ -178,7 +190,7 @@ func (s *systemDNS)query(domain string, RecordChan chan *DnsRecord, ExitChan cha
 	}()
 
 	func() {
-		defer func() {_=recover()}()
+		defer func() {_ = recover()}()
 		for _, ipString := range ipsString {
 			RecordChan <- &DnsRecord{ipString, 0}
 		}
