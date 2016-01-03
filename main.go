@@ -7,6 +7,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"github.com/gamexg/TcpRoute2/netchan"
+	"path/filepath"
 )
 
 const version = "0.3.0"
@@ -16,6 +18,7 @@ type ServerConfig struct {
 	UpStreams     []ServerConfigUpStream
 	PreHttpPorts  []int // 不使用默认值，好能检测配置文件是否有这个配置项
 	PreHttpsPorts []int
+	Hosts         []*netchan.DnschanHostsConfigHosts
 	Config        string `default:""`
 }
 
@@ -40,6 +43,8 @@ func main() {
 		return
 	}
 
+	config_dir := filepath.Dir(*config_path)
+
 	m := multiconfig.NewWithPath(*config_path)
 
 	serverConfig := new(ServerConfig)
@@ -52,6 +57,13 @@ func main() {
 	}
 	preHttpPorts = serverConfig.PreHttpPorts
 	preHttpsPorts = serverConfig.PreHttpsPorts
+
+	if err := netchan.HostsDns.Config(&netchan.DnschanHostsConfig{BashPath:config_dir,
+		Hostss:serverConfig.Hosts,
+		CheckInterval:1 * time.Minute,
+	}); err != nil {
+		panic(err)
+	}
 
 	// 创建 tcpping 上层代理
 	upStream := NewTcppingUpStream()
