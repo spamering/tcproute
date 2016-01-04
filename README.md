@@ -94,14 +94,14 @@ CorrectDelay=0
 # http、https 按 UpdateInterval 间隔更新。
 #Path="hosts/racaljk_hosts.txt"
 #Path="http://www.abc.com/hosts"
-Path="hosts/racaljk_hosts.txt"
+Path="https://raw.githubusercontent.com/racaljk/hosts/master/hosts"
 # 网络 hosts 文件更新间隔
 # 最小有效值 1 分钟
 # 格式 "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
 UpdateInterval="24h"
 # dns 信誉
 # 类似于线路信誉，对于小于0的 dns 解析结果将只用于 https 等自带加密的协议。
-Credit=0
+Credit=-100
 
 ```
 
