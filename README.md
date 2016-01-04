@@ -21,6 +21,7 @@
 
 # TcpRoute2 配置文件
 # https://github.com/GameXG/TcpRoute2
+# 为 TOML 格式，格式说明：https://segmentfault.com/a/1190000000477752
 
 # 监听地址
 # 目前只对外提供 socks5 协议
@@ -32,12 +33,12 @@ addr="127.0.0.1:7070"
 # 部分应用可能也会进行本地dns解析,开启这个功能将避免应用程序本地dns解析时无法优化访问的问题。
 #
 # 例子：
-# preHttpPorts=[80,]
-# preHttpsPorts=[443,]
+# PreHttpPorts=[80,]
+# PreHttpsPorts=[443,]
 # 这个是默认值，对 80 端口的 http 请求启用，对 443 端口的 tls 连接启用。
 #
-# preHttpPorts=[0,]
-# preHttpsPorts=[0,]
+# PreHttpPorts=[0,]
+# PreHttpsPorts=[0,]
 # 关闭这个功能
 
 # 可以使用的线路列表
@@ -81,6 +82,27 @@ Sleep=80
 # 非 ss 协议不用设置，ss 协议建议设置为50-100.
 CorrectDelay=0
 
+
+# hosts 功能
+# 这个是独立与操作系统的 hosts，只对于代理生效。
+# 允许通过多个 [[hosts]] 项来同时使用多个 hosts 文件 。
+[[Hosts]]
+# hosts 路径
+# 允许本地文件及 http 、https文件。
+# 本地文件是相对路径时是相对于 config.toml 文件所在目录。会检测hosts文件修改并自动重新载入。
+# 为了性能，不建议将 hosts 文件和日志等经常修改的文件放在同一目录。
+# http、https 按 UpdateInterval 间隔更新。
+#Path="hosts/racaljk_hosts.txt"
+#Path="http://www.abc.com/hosts"
+Path="hosts/racaljk_hosts.txt"
+# 网络 hosts 文件更新间隔
+# 最小有效值 1 分钟
+# 格式 "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+UpdateInterval="24h"
+# dns 信誉
+# 类似于线路信誉，对于小于0的 dns 解析结果将只用于 https 等自带加密的协议。
+Credit=0
+
 ```
 
 ## 强制代理服务器 DNS 解析功能
@@ -94,6 +116,9 @@ redsocks、Proxifier 全局代理及部分应用会执行本地DNS解析，这�
 
 增加了代理信誉度、dns信誉度的功能，对于信誉度低的代理将只允许 https 、smtp ssl 等本身支持服务器认证的协议。这样使用不安全的代理也能比较安全。
 
+## Hosts 功能
+
+增加了代理级别的 hosts 文件，支持本地及网络hosts文件。通过hosts即使在不存在上层代理的情况下也可以优化网络访问。hosts 文件同样也有信誉度功能。
 
 ## 具体细节
 * 对 DNS 解析获得的多个IP同时尝试连接，最终使用最快建立的连接。
