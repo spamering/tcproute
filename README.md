@@ -94,6 +94,7 @@ CorrectDelay=0
 # http、https 按 UpdateInterval 间隔更新。
 #Path="hosts/racaljk_hosts.txt"
 #Path="http://www.abc.com/hosts"
+# 感谢 https://github.com/racaljk/hosts 项目维护 hosts
 Path="https://raw.githubusercontent.com/racaljk/hosts/master/hosts"
 # 网络 hosts 文件更新间隔
 # 最小有效值 1 分钟
@@ -121,6 +122,8 @@ redsocks、Proxifier 全局代理及部分应用会执行本地DNS解析，这�
 ## Hosts 功能
 
 增加了代理级别的 hosts 文件，支持本地及网络hosts文件。通过hosts即使在不存在上层代理的情况下也可以优化网络访问。hosts 文件同样也有信誉度功能。
+
+感谢 https://github.com/racaljk/hosts 项目维护 hosts
 
 ## 具体细节
 * 对 DNS 解析获得的多个IP同时尝试连接，最终使用最快建立的连接。
