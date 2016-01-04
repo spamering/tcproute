@@ -80,5 +80,5 @@ Path="https://raw.githubusercontent.com/racaljk/hosts/master/hosts"
 UpdateInterval="24h"
 # dns 信誉
 # 类似于线路信誉，对于小于0的 dns 解析结果将只用于 https 等自带加密的协议。
-Credit=0
+Credit=-100
 
