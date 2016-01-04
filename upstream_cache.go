@@ -124,11 +124,7 @@ func (c*upStreamConnCache)GetOptimal(domainAddr string) (upStreamConnCacheAddrIt
 	defer c.m.Unlock()
 
 	item := c.get(domainAddr)
-	if item == nil {
-		return upStreamConnCacheAddrItem{}, fmt.Errorf("不存在")
-	}
-
-	if len(item.itemsList) == 0 {
+	if item == nil || len(item.itemsList) == 0 {
 		return upStreamConnCacheAddrItem{}, fmt.Errorf("不存在")
 	}
 
