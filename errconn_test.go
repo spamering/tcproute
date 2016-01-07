@@ -15,6 +15,11 @@ func TestErrConn(t *testing.T) {
 	e.AddErrLog("d3", "www.163.com:80", "1.2.3.4:80", ErrConnTypeRead0)
 	e.AddErrLog("d4", "www.163.com:80", "www.163.com:80", ErrConnTypeRead0)
 	e.AddErrLog("d5", "www.163.com:80", "www.163.com:80", ErrConnTypeRead0)
+	e.AddErrLog("d7", "www.163.com:80", "www.163.com:80", ErrConnTypeRead0)
+	e.AddErrLog("d7", "www.123.com:80", "www.123.com:80", ErrConnTypeRead0)
+	e.AddErrLog("d7", "www.456.com:80", "www.456.com:80", ErrConnTypeRead0)
+	e.AddErrLog("d7", "www.789.com:80", "www.789.com:80", ErrConnTypeRead0)
+	e.AddErrLog("d7", "www.0.com:80", "www.0.com:80", ErrConnTypeRead0)
 
 	if e.Check("d1", "www.163.com:80", "1.2.3.4:80") != false {
 		t.Error("错误")
@@ -29,6 +34,10 @@ func TestErrConn(t *testing.T) {
 	}
 
 	if e.Check("d6", "www.163.com:80", "www.163.com:80") != true {
+		t.Error("错误")
+	}
+
+	if e.Check("d7", "www.999.com:80", "92.9.9.9:80") != false {
 		t.Error("错误")
 	}
 
