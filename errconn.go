@@ -103,7 +103,7 @@ func (ec*ErrConnService)AddErrLog(dialName, domainAddr, ipAddr string, errType E
 	}
 
 	add(dialName, domainAddr, ipAddr, errType)
-	add(dialName, "*", dialName + ipAddr, errType)
+	add(dialName, "*", dialName + " " + ipAddr, errType)
 }
 
 // 确认连接是否为异常ip
@@ -137,7 +137,7 @@ func (ec*ErrConnService)Check(dialName, domainAddr, ipAddr string) bool {
 		return true
 	}
 
-	if check(dialName, domainAddr, ipAddr) == false || check(dialName, "*", dialName + ipAddr) == false {
+	if check(dialName, domainAddr, ipAddr) == false || check(dialName, "*", dialName + " " + ipAddr) == false {
 		return false
 	}
 
