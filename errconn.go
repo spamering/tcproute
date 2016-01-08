@@ -59,19 +59,19 @@ type ErrConnDomain struct {
 
 // 异常连接 相关服务
 type ErrConnService struct {
-	domains *lru.Cache // key domainAddr value *ErrConnDomain
-	m       sync.Mutex
+	lru *lru.Cache // key domainAddr value *ErrConnDomain
+	m   sync.Mutex
 }
 
 func NewErrConnService() *ErrConnService {
 	res := ErrConnService{}
-	res.domains = lru.New(100)
+	res.lru = lru.New(100)
 	return &res
 }
 
 // 非线程安全
 func (ec*ErrConnService)get(domainAddr string) *ErrConnDomain {
-	v, ok := ec.domains.Get(domainAddr)
+	v, ok := ec.lru.Get(domainAddr)
 	if ok != true {
 		return nil
 	}
@@ -81,7 +81,7 @@ func (ec*ErrConnService)get(domainAddr string) *ErrConnDomain {
 
 // 非线程安全
 func (ec*ErrConnService)set(domain *ErrConnDomain) {
-	ec.domains.Add(domain.domainAddr, domain)
+	ec.lru.Add(domain.domainAddr, domain)
 }
 
 
@@ -90,20 +90,16 @@ func (ec*ErrConnService)AddErrLog(dialName, domainAddr, ipAddr string, errType E
 	ec.m.Lock()
 	defer ec.m.Unlock()
 
-	add := func(dialName, domainAddr, ipAddr string, errType ErrConnType) {
-		d := ec.get(domainAddr)
-		if d == nil {
-			d = &ErrConnDomain{domainAddr, make([]*ErrConnLog, 0, 1), nil, time.Unix(0, 0)}
-			ec.set(d)
-		}
-		log := ErrConnLog{ipAddr, dialName, errType, time.Now()}
-
-		d.log = append(d.log, &log)
-		d.refresh()
+	d := ec.get(domainAddr)
+	if d == nil {
+		d = &ErrConnDomain{domainAddr, make([]*ErrConnLog, 0, 1), nil, time.Unix(0, 0)}
+		ec.set(d)
 	}
+	log := ErrConnLog{ipAddr, dialName, errType, time.Now()}
 
-	add(dialName, domainAddr, ipAddr, errType)
-	add(dialName, "*", dialName + " " + ipAddr, errType)
+	d.log = append(d.log, &log)
+	//d.cacheExpiredTime = time.Unix(0, 0)
+	d.refresh()
 }
 
 // 确认连接是否为异常ip
@@ -115,29 +111,22 @@ func (ec*ErrConnService)Check(dialName, domainAddr, ipAddr string) bool {
 	ec.m.Lock()
 	defer ec.m.Unlock()
 
-	check := func(dialName, domainAddr, ipAddr string) bool {
-		d := ec.get(domainAddr)
-		if d == nil {
-			return true
-		}
-
-		if d.cacheExpiredTime.Before(time.Now()) || d.cache == nil {
-			d.refresh()
-		}
-
-		if d.cache.dial[dialName] >= 5 {
-			fmt.Printf("%v 的 %v 线路的尝试连接IP %v ，由于线路属于经常故障线路，忽略本连接。\r\n", domainAddr, dialName, ipAddr)
-			return false
-		}
-
-		if d.cache.ipAddr[ipAddr] >= 2 {
-			fmt.Printf("%v 的 %v 线路的尝试连接IP %v ，由于ip属于经常故障ip，忽略本连接。\r\n", domainAddr, dialName, ipAddr)
-			return false
-		}
+	d := ec.get(domainAddr)
+	if d == nil {
 		return true
 	}
 
-	if check(dialName, domainAddr, ipAddr) == false || check(dialName, "*", dialName + " " + ipAddr) == false {
+	if d.cacheExpiredTime.Before(time.Now()) || d.cache == nil {
+		d.refresh()
+	}
+
+	if d.cache.dial[dialName] >= 5 {
+		fmt.Printf("%v 的 %v 线路的尝试连接IP %v ，由于线路属于经常故障线路，忽略本连接。\r\n", domainAddr, dialName, ipAddr)
+		return false
+	}
+
+	if d.cache.ipAddr[ipAddr] >= 2 {
+		fmt.Printf("%v 的 %v 线路的尝试连接IP %v ，由于ip属于经常故障ip，忽略本连接。\r\n", domainAddr, dialName, ipAddr)
 		return false
 	}
 
