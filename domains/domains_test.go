@@ -120,4 +120,135 @@ func TestDomains(t *testing.T) {
 			}
 		}
 	}
+
+	// Base 删除测试
+	d.RemoveDomain("163.com", Base, func(domain string, domainType DomainType, uesrdata UserData) bool {
+		if domain != "163.com" || domainType != Base {
+			t.Error(`domain!="163.com"||domainType!=Base`)
+		}
+		if uesrdata.(string) == "1.163.com" {
+			return true
+		}
+		return false
+	})
+	if res := d.Find("163.com"); len(res.Userdatas) != 1 {
+		t.Error(res.Userdatas)
+	}else {
+		for _, v := range res.Userdatas {
+			str := v.(string)
+			if str != "2.163.com" {
+				t.Error(str)
+			}
+		}
+	}
+
+	// Suffic 删除测试
+	d.RemoveDomain("baidu.com", Suffix, func(domain string, domainType DomainType, uesrdata UserData) bool {
+		if domain != "baidu.com" || domainType != Suffix {
+			t.Error(`domain!="baidu.com"||domainType!=Suffix`)
+		}
+		if uesrdata.(string) == "1.baidu.com" {
+			return true
+		}
+		return false
+	})
+	if res := d.Find("baidu.com"); len(res.Userdatas) != 1 {
+		t.Error(res.Userdatas)
+	}else {
+		for _, v := range res.Userdatas {
+			str := v.(string)
+			if str != "2.baidu.com" {
+				t.Error(str)
+			}
+		}
+	}
+
+	// Pan 删除测试 1
+	d.RemoveDomain("*.qq.com", Pan, func(domain string, domainType DomainType, uesrdata UserData) bool {
+		if domain != "*.qq.com" || domainType != Pan {
+			t.Error(`domain!="*.qq.com"||domainType!=Pan`)
+		}
+		if uesrdata.(string) == "1.qq.com" {
+			return true
+		}
+		return false
+	})
+	if res := d.Find("abc.qq.com"); len(res.Userdatas) != 1 {
+		t.Error(res.Userdatas)
+	}else {
+		for _, v := range res.Userdatas {
+			str := v.(string)
+			if str != "2.qq.com" {
+				t.Error(str)
+			}
+		}
+	}
+
+	// Pan 删除测试 2
+	d.RemoveDomain("ww?.google.com", Pan, func(domain string, domainType DomainType, uesrdata UserData) bool {
+		if domain != "ww?.google.com" || domainType != Pan {
+			t.Error(`domain!="*.qq.com"||domainType!=Pan`)
+		}
+		if uesrdata.(string) == "1.google.com" {
+			return true
+		}
+		return false
+	})
+	if res := d.Find("wwx.google.com"); len(res.Userdatas) != 1 {
+		t.Error(res.Userdatas)
+	}else {
+		for _, v := range res.Userdatas {
+			str := v.(string)
+			if str != "2.google.com" {
+				t.Error(str)
+			}
+		}
+	}
+
+	// 正则删除测试
+	d.RemoveDomain(`^www\..+?\.com$`, Regex, func(domain string, domainType DomainType, uesrdata UserData) bool {
+		if domain != `^www\..+?\.com$` || domainType != Regex {
+			t.Error(`domain!="^www\..+?\.com$"||domainType!=Regex`)
+		}
+		if uesrdata.(string) == "1.xxx.com" {
+			return true
+		}
+		return false
+	})
+	if res := d.Find("www.xxx.com"); len(res.Userdatas) != 1 {
+		t.Error(res.Userdatas)
+	}else {
+		for _, v := range res.Userdatas {
+			str := v.(string)
+			if str != "2.xxx.com" {
+				t.Error(str)
+			}
+		}
+	}
+
+	//全部清空测试
+	d.Remove(func(domain string, domainType DomainType, uesrdata UserData) bool {
+		str := uesrdata.(string)
+		if str != "2.163.com" && str != "2.baidu.com" && str != "2.qq.com" && str != "2.google.com" && str != "2.xxx.com" {
+			t.Error(str)
+		}
+		return true
+	})
+
+	if res := d.Find("163.com"); len(res.Userdatas) != 0 {
+		t.Error(res.Userdatas)
+	}
+	if res := d.Find("www.baidu.com"); len(res.Userdatas) != 0 {
+		t.Error(res.Userdatas)
+	}
+	if res := d.Find("www.qq.com"); len(res.Userdatas) != 0 {
+		t.Error(res.Userdatas)
+	}
+	if res := d.Find("www.google.com"); len(res.Userdatas) != 0 {
+		t.Error(res.Userdatas)
+	}
+	if res := d.Find("www.xxx.com"); len(res.Userdatas) != 0 {
+		t.Error(res.Userdatas)
+	}
+
 }
