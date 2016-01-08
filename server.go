@@ -17,6 +17,10 @@ const (
 	handlerBaseTimeout = 10 * time.Minute
 )
 
+type SetLingerer interface {
+	SetLinger(sec int) error
+}
+
 type Server struct {
 	Addr     string          // TCP 监听地址
 	hNewer   HandlerNewer    // 请求处理器
@@ -105,7 +109,7 @@ func (srv *Server) handlerConn(conn net.Conn) {
 	// 是这里调用关闭还是 Handler() 负责？
 	defer conn.Close()
 
-	if tcpConn, ok := conn.(*net.TCPConn); ok == true {
+	if tcpConn, ok := conn.(SetLingerer); ok == true {
 		// 设置关闭连接时最多等待多少秒
 		tcpConn.SetLinger(5)
 	}
