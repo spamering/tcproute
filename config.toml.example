@@ -75,6 +75,12 @@ CorrectDelay=0
 #Path="http://www.abc.com/hosts"
 # 感谢 https://github.com/racaljk/hosts 项目维护 hosts
 Path="https://raw.githubusercontent.com/racaljk/hosts/master/hosts"
+# hosts 域名类型，标准的 hosts 文件都是 base 类型。
+# base 完整匹配，默认值。即 www.abc.com 只匹配 www.abc.com ，不匹配 aaa.www.abc.com 。
+# suffix 后缀匹配。即 abc.com 匹配 abc.com、www.abc.com、aaa.www.abc.com，不匹配 aaaabc.com。
+# pan 泛解析匹配。即 *.abc.com 匹配 www.abc.com 、aaa.www.abc.com。不匹配 .abc.com。?.abc.com 匹配 a.abc.com。
+# regex 正则匹配。即 ^.+?.com$ 匹配 www.abc.com 、aaa.www.abc.com。注意：完整匹配时不要忘记 ^$ 。
+Type="base"
 # 网络 hosts 文件更新间隔
 # 最小有效值 1 分钟
 # 格式 "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".

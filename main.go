@@ -9,6 +9,7 @@ import (
 	"log"
 	"github.com/gamexg/TcpRoute2/netchan"
 	"path/filepath"
+	"strings"
 )
 
 const version = "0.4.0"
@@ -57,6 +58,12 @@ func main() {
 	}
 	preHttpPorts = serverConfig.PreHttpPorts
 	preHttpsPorts = serverConfig.PreHttpsPorts
+
+	for _, hosts := range serverConfig.Hosts {
+		if strings.TrimSpace(hosts.Type) == "" {
+			hosts.Type = "base"
+		}
+	}
 
 	if err := netchan.HostsDns.Config(&netchan.DnschanHostsConfig{BashPath:config_dir,
 		Hostss:serverConfig.Hosts,

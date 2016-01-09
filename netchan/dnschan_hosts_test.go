@@ -6,27 +6,28 @@ import (
 	"os"
 )
 
-// 还未实现全自动测试
 func TestHosts(t *testing.T) {
 	os.Remove("hosts-test.txt")
 
 	hostss := make([]*DnschanHostsConfigHosts, 0)
 	localHosts := DnschanHostsConfigHosts{
 		Path:"hosts-test.txt",
-		UpdateInterval:"1s",
+		UpdateInterval:"60s",
 		Credit:0,
+		Type:"base",
 	}
 	httpHosts := DnschanHostsConfigHosts{
 		Path:"https://raw.githubusercontent.com/racaljk/hosts/f2699c8652740a6ed000100b505a01a9a0c0730f/hosts",
-		UpdateInterval:"1s",
+		UpdateInterval:"60s",
 		Credit:0,
+		Type:"base",
 	}
 	hostss = append(hostss, &localHosts)
 	hostss = append(hostss, &httpHosts)
 
 	h, err := NewHostsDns(&DnschanHostsConfig{BashPath:"./",
 		Hostss:hostss,
-		CheckInterval:1 * time.Second,
+		CheckInterval:60 * time.Second,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -59,7 +60,7 @@ func TestHosts(t *testing.T) {
 	httpHosts.Path = "https://raw.githubusercontent.com/racaljk/hosts/47295268db605b4cb85fd9cbe8a88fc4b3536431/hosts"
 	h.Config(&DnschanHostsConfig{BashPath:"./",
 		Hostss:hostss,
-		CheckInterval:1 * time.Second,
+		CheckInterval:60 * time.Second,
 	})
 
 
@@ -81,12 +82,14 @@ func TestHosts(t *testing.T) {
 	}
 
 
-	for _, hosts := range h.hostss {
-		if hosts.Path == "https://raw.githubusercontent.com/racaljk/hosts/47295268db605b4cb85fd9cbe8a88fc4b3536431/hosts" {
-			hosts.updateInterval = 100 * time.Second
-			hosts.utime = time.Now().Add(100 * time.Second)
-		}
-	}
+
+	/*
+		for _, hosts := range h.hostss {
+			if hosts.Path == "https://raw.githubusercontent.com/racaljk/hosts/47295268db605b4cb85fd9cbe8a88fc4b3536431/hosts" {
+				hosts.updateInterval = 100 * time.Second
+				hosts.utime = time.Now().Add(100 * time.Second)
+			}
+		}*/
 
 	//测试 hosts 文件
 	f, err := os.Create("hosts-test.txt")

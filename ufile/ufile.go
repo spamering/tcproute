@@ -1,4 +1,4 @@
-package netchan
+package ufile
 import (
 	"sync"
 	"github.com/go-fsnotify/fsnotify"

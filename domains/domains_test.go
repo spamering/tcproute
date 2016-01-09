@@ -4,7 +4,6 @@ import (
 	"testing"
 )
 
-// 测试本地文件
 func TestDomains(t *testing.T) {
 
 	d := NewDomains(100)
