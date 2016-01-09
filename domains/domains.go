@@ -32,7 +32,7 @@ const (
 
 type UserData interface{}
 
-type domains struct {
+type Domains struct {
 	cacheSize     int
 	cache         *lru.Cache               // 域名:[]domainRecord
 
@@ -60,8 +60,8 @@ type Domain struct {
 }
 
 
-func NewDomains(cacheSize int) *domains {
-	d := domains{
+func NewDomains(cacheSize int) *Domains {
+	d := Domains{
 		cacheSize:cacheSize,
 		cache:lru.New(cacheSize),
 		baseDomains:make(map[string][]UserData),
@@ -73,7 +73,7 @@ func NewDomains(cacheSize int) *domains {
 }
 
 // 追加新的域名
-func (d*domains)Add(domain string, domainType DomainType, userdata UserData) error {
+func (d*Domains)Add(domain string, domainType DomainType, userdata UserData) error {
 	d.rwm.Lock()
 	defer d.rwm.Unlock()
 
@@ -138,7 +138,16 @@ func (d*domains)Add(domain string, domainType DomainType, userdata UserData) err
 
 // 移除域名
 // 使用过滤函数来识别需要删除的内容，返回 true 时表示需要删除
-func (d*domains)Remove(f func(domain string, domainType DomainType, uesrdata UserData) bool) {
+func (d*Domains)Remove(f func(domain string, domainType DomainType, uesrdata UserData) bool) {
+	d.RemoveType(Base, f)
+	d.RemoveType(Suffix, f)
+	d.RemoveType(Pan, f)
+	d.RemoveType(Regex, f)
+}
+
+// 移除域名
+// 使用过滤函数来识别需要删除的内容，返回 true 时表示需要删除
+func (d*Domains)RemoveType(domainType DomainType, f func(domain string, domainType DomainType, uesrdata UserData) bool) {
 
 	removeBase := func(domainType DomainType, domains map[string][]UserData) *map[string][]UserData {
 		newDomains := make(map[string][]UserData)
@@ -155,9 +164,6 @@ func (d*domains)Remove(f func(domain string, domainType DomainType, uesrdata Use
 		}
 		return &newDomains
 	}
-
-	d.baseDomains = *removeBase(Base, d.baseDomains)
-	d.suffixDomains = *removeBase(Suffix, d.suffixDomains)
 
 	removeRegex := func(domainType DomainType, domains *map[string]*domainRecord) {
 		delDomains := make([]string, 0)
@@ -178,13 +184,21 @@ func (d*domains)Remove(f func(domain string, domainType DomainType, uesrdata Use
 		}
 	}
 
-	removeRegex(Pan, &d.panDomains)
-	removeRegex(Regex, &d.regexDomains)
+	switch domainType {
+	case Base:
+		d.baseDomains = *removeBase(domainType, d.baseDomains)
+	case Suffix:
+		d.suffixDomains = *removeBase(domainType, d.suffixDomains)
+	case Pan:
+		removeRegex(Pan, &d.panDomains)
+	case Regex:
+		removeRegex(Pan, &d.regexDomains)
+	}
 
 	d.cache = lru.New(d.cacheSize)
 }
 
-func (d*domains)RemoveDomain(domain string, domainType DomainType, f func(domain string, domainType DomainType, uesrdata UserData) bool) error {
+func (d*Domains)RemoveDomain(domain string, domainType DomainType, f func(domain string, domainType DomainType, uesrdata UserData) bool) error {
 	d.rwm.Lock()
 	defer d.rwm.Unlock()
 
@@ -264,7 +278,7 @@ func (d*domains)RemoveDomain(domain string, domainType DomainType, f func(domain
 }
 
 // 查找匹配的域名
-func (d*domains)Find(domain string) (*Domain) {
+func (d*Domains)Find(domain string) (*Domain) {
 	res := d.cacheGet(domain)
 	if res != nil {
 		return res
@@ -307,14 +321,14 @@ func (d*domains)Find(domain string) (*Domain) {
 	return res
 }
 
-func (d*domains)cacheGet(domain string) (*Domain) {
+func (d*Domains)cacheGet(domain string) (*Domain) {
 	v, ok := d.cache.Get(domain)
 	if ok {
 		return v.(*Domain)
 	}
 	return nil
 }
-func (d*domains)cacheSet(domain string, value*Domain) {
+func (d*Domains)cacheSet(domain string, value*Domain) {
 	d.cache.Add(domain, value)
 	return
 }

@@ -1,4 +1,4 @@
-package netchan
+package ufile
 
 import (
 	"testing"
@@ -83,7 +83,7 @@ func TestLFile(t *testing.T) {
 	}
 
 	// 读出可能存在的修改内容
-	func(){
+	func() {
 		timeout := time.After(2 * time.Second)
 		for {
 			select {
