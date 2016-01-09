@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const version = "0.4.0"
+const version = "0.4.5"
 
 type ServerConfig struct {
 	Addr          string `default:":5050"`
