@@ -148,6 +148,8 @@ func (d*Domains)Remove(f func(domain string, domainType DomainType, uesrdata Use
 // 移除域名
 // 使用过滤函数来识别需要删除的内容，返回 true 时表示需要删除
 func (d*Domains)RemoveType(domainType DomainType, f func(domain string, domainType DomainType, uesrdata UserData) bool) {
+	d.rwm.Lock()
+	defer d.rwm.Unlock()
 
 	removeBase := func(domainType DomainType, domains map[string][]UserData) *map[string][]UserData {
 		newDomains := make(map[string][]UserData)
@@ -284,44 +286,52 @@ func (d*Domains)Find(domain string) (*Domain) {
 		return res
 	}
 
-	res = &Domain{}
+	func() {
+		d.rwm.RLock()
+		defer d.rwm.RUnlock()
 
-	// 基本匹配
-	u, ok := d.baseDomains[domain]
-	if ok {
-		res.Userdatas = append(res.Userdatas, u...)
-	}
+		res = &Domain{}
 
-	//后缀匹配
-	u, ok = d.suffixDomains[domain]
-	if ok {
-		res.Userdatas = append(res.Userdatas, u...)
-	}
-	for k, v := range d.suffixDomains {
-		if len(domain) > len(k) &&
-		strings.HasSuffix(domain, k) &&
-		domain[len(domain) - len(k) - 1] == '.' {
-			res.Userdatas = append(res.Userdatas, v...)
+		// 基本匹配
+		u, ok := d.baseDomains[domain]
+		if ok {
+			res.Userdatas = append(res.Userdatas, u...)
 		}
-	}
 
-	// 泛解析匹配、正则匹配
-	regexMatch := func(record map[string]*domainRecord) {
-		for _, v := range record {
-			if v.regexp.MatchString(domain) {
-				res.Userdatas = append(res.Userdatas, v.userdatas...)
+		//后缀匹配
+		u, ok = d.suffixDomains[domain]
+		if ok {
+			res.Userdatas = append(res.Userdatas, u...)
+		}
+		for k, v := range d.suffixDomains {
+			if len(domain) > len(k) &&
+			strings.HasSuffix(domain, k) &&
+			domain[len(domain) - len(k) - 1] == '.' {
+				res.Userdatas = append(res.Userdatas, v...)
 			}
 		}
-	}
-	regexMatch(d.panDomains)
-	regexMatch(d.regexDomains)
 
+		// 泛解析匹配、正则匹配
+		regexMatch := func(record map[string]*domainRecord) {
+			for _, v := range record {
+				if v.regexp.MatchString(domain) {
+					res.Userdatas = append(res.Userdatas, v.userdatas...)
+				}
+			}
+		}
+		regexMatch(d.panDomains)
+		regexMatch(d.regexDomains)
+	}()
 	d.cacheSet(domain, res)
 
 	return res
 }
 
+
 func (d*Domains)cacheGet(domain string) (*Domain) {
+	d.rwm.Lock()
+	defer d.rwm.Unlock()
+
 	v, ok := d.cache.Get(domain)
 	if ok {
 		return v.(*Domain)
@@ -329,6 +339,9 @@ func (d*Domains)cacheGet(domain string) (*Domain) {
 	return nil
 }
 func (d*Domains)cacheSet(domain string, value*Domain) {
+	d.rwm.Lock()
+	defer d.rwm.Unlock()
+
 	d.cache.Add(domain, value)
 	return
 }

@@ -67,33 +67,30 @@ type hostQueryTem struct {
 }
 
 func (h*hostsDns)query(domainName string, RecordChan chan *DnsRecord, ExitChan chan int) {
-	ipss := make([]*domainUserdata, 0)
+	var domain *domains.Domain
 
 	// 读出结果
 	func() {
 		h.rwm.RLock()
 		defer h.rwm.RUnlock()
-		domain := h.ds.Find(domainName)
-		for _, userdata := range domain.Userdatas {
-			duserdata := userdata.(*domainUserdata)
-			ipss = append(ipss, duserdata)
-		}
+		domain = h.ds.Find(domainName)
 	}()
 
 	// 输出结果
-	for _, r := range ipss {
-		for _, ip := range r.ips {
+	for _, userdata := range domain.Userdatas {
+		duserdata := userdata.(*domainUserdata)
+		for _, ip := range duserdata.ips {
 			func() {
 				defer func() {_ = recover()}()
 				select {
 				case <-ExitChan:
 					return
 				default:
-					RecordChan <- &DnsRecord{ip, r.credit}
+					RecordChan <- &DnsRecord{ip, duserdata.credit}
 				}
 			}()
-		}
-	}
+		}}
+
 }
 
 // 更新配置
