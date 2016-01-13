@@ -12,7 +12,7 @@ func TestHosts(t *testing.T) {
 	hostss := make([]*DnschanHostsConfigHosts, 0)
 	localHosts := DnschanHostsConfigHosts{
 		Path:"hosts-test.txt",
-		UpdateInterval:"60s",
+		UpdateInterval:"",
 		Credit:0,
 		Type:"base",
 	}

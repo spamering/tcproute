@@ -59,11 +59,6 @@ func main() {
 	preHttpPorts = serverConfig.PreHttpPorts
 	preHttpsPorts = serverConfig.PreHttpsPorts
 
-	for _, hosts := range serverConfig.Hosts {
-		if strings.TrimSpace(hosts.Type) == "" {
-			hosts.Type = "base"
-		}
-	}
 
 	if err := netchan.HostsDns.Config(&netchan.DnschanHostsConfig{BashPath:config_dir,
 		Hostss:serverConfig.Hosts,
