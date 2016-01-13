@@ -96,7 +96,14 @@ func searchBlackIP() {
 			defer rwm.Unlock()
 			blackIP = bIP
 		}()
-		log.Println("发现异常IP：", blackIP)
+		if len(blackIP) == 0 {
+			log.Println("[DNS]未发现 DNS 域名纠错功能，无需屏蔽纠错 IP 。")
+		}
+
+		for k, _ := range blackIP {
+			log.Printf("[DNS]发现域名纠错 IP %v ，已进行屏蔽。", k)
+		}
+
 	}
 
 	run()
