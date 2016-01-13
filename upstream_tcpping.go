@@ -5,7 +5,6 @@ import (
 	"github.com/gamexg/proxyclient"
 	"fmt"
 	"github.com/gamexg/TcpRoute2/netchan"
-	"strconv"
 	"sync"
 	"log"
 )
@@ -66,19 +65,7 @@ func (su*tcppingUpStream)AddUpStream(name, proxyUrl string, dnsResolve bool, cre
 		return fmt.Errorf("无法创建上级代理：%v", err)
 	}
 
-	dialCredit := 0
-	creditQuery, ok := pc.GetProxyAddrQuery()["credit"]
-	if ok {
-		if len(creditQuery) > 1 {
-			return fmt.Errorf("代理 credit 重复设置，代理url:%v", proxyUrl)
-		}
-		dialCreditTem, err := strconv.Atoi(creditQuery[0])
-		if err == nil {
-			dialCredit = dialCreditTem
-		}
-	}
-
-	su.dc = append(su.dc, DialClient{name, dnsResolve, pc, dialCredit, sleep, correctDelay})
+	su.dc = append(su.dc, DialClient{name, dnsResolve, pc, credit, sleep, correctDelay})
 	return nil
 }
 
