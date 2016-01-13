@@ -38,7 +38,7 @@ func ParseDomainType(v string) (DomainType, error) {
 	}
 }
 
-func (t*DomainType)String() string{
+func (t*DomainType)String() string {
 	switch *t {
 	case Base:
 		return "Base"
@@ -54,7 +54,7 @@ func (t*DomainType)String() string{
 }
 
 const (
-	Base DomainType = 1+iota  //基本匹配，必须完全一致才匹配
+	Base DomainType = 1 + iota  //基本匹配，必须完全一致才匹配
 	Suffix                  // 后缀匹配 ， abc.com 匹配 www.abc.com 、123.abc.com、123.456.abc.com 及 abc.com
 	Pan                     // 泛解析 ，处理 * 及 ?
 	Regex                 //正则，正则表达式
@@ -103,18 +103,24 @@ func NewDomains(cacheSize int) *Domains {
 }
 
 // 追加新的域名
+// Find 时的域名也会被转换成为小写进行匹配。
+// Add 添加的 基本、后缀、泛解析的域名会被转换成为小写格式。
+// 正则表达式由于可能存在语义，不会自动转换成为小写，需要写正则表达式时注意使用小写域名。
 func (d*Domains)Add(domain string, domainType DomainType, userdata UserData) error {
 	d.rwm.Lock()
 	defer d.rwm.Unlock()
 
 	switch domainType {
 	case Base:
+		domain = strings.ToLower(domain)
 		d.baseDomains[domain] = append(d.baseDomains[domain], userdata)
 		d.cache.Remove(domain)
 	case Suffix:
+		domain = strings.ToLower(domain)
 		d.suffixDomains[domain] = append(d.suffixDomains[domain], userdata)
 		d.cache = lru.New(d.cacheSize)
 	case Pan:
+		domain = strings.ToLower(domain)
 		panDomain := d.panDomains[domain]
 
 		if panDomain == nil {
@@ -168,6 +174,7 @@ func (d*Domains)Add(domain string, domainType DomainType, userdata UserData) err
 
 // 移除域名
 // 使用过滤函数来识别需要删除的内容，返回 true 时表示需要删除
+// 基本、后缀、泛解析的域名会被转换成为小写格式，f 函数处理时需要注意。
 func (d*Domains)Remove(f func(domain string, domainType DomainType, uesrdata UserData) bool) {
 	d.RemoveType(Base, f)
 	d.RemoveType(Suffix, f)
@@ -177,6 +184,7 @@ func (d*Domains)Remove(f func(domain string, domainType DomainType, uesrdata Use
 
 // 移除域名
 // 使用过滤函数来识别需要删除的内容，返回 true 时表示需要删除
+// 基本、后缀、泛解析的域名会被转换成为小写格式，f 函数处理时需要注意。
 func (d*Domains)RemoveType(domainType DomainType, f func(domain string, domainType DomainType, uesrdata UserData) bool) {
 	d.rwm.Lock()
 	defer d.rwm.Unlock()
@@ -230,12 +238,14 @@ func (d*Domains)RemoveType(domainType DomainType, f func(domain string, domainTy
 	d.cache = lru.New(d.cacheSize)
 }
 
+// 基本、后缀、泛解析的域名会被转换成为小写格式，f 函数处理时需要注意。
 func (d*Domains)RemoveDomain(domain string, domainType DomainType, f func(domain string, domainType DomainType, uesrdata UserData) bool) error {
 	d.rwm.Lock()
 	defer d.rwm.Unlock()
 
 	switch domainType {
 	case Base:
+		domain = strings.ToLower(domain)
 		oldUserdata, ok := d.baseDomains[domain]
 		if ok {
 			newUserdata := make([]UserData, 0)
@@ -253,6 +263,7 @@ func (d*Domains)RemoveDomain(domain string, domainType DomainType, f func(domain
 		}
 
 	case Suffix:
+		domain = strings.ToLower(domain)
 		oldUserdata, ok := d.suffixDomains[domain]
 		if ok {
 			newUserdata := make([]UserData, 0)
@@ -270,6 +281,7 @@ func (d*Domains)RemoveDomain(domain string, domainType DomainType, f func(domain
 		}
 
 	case Pan:
+		domain = strings.ToLower(domain)
 		record, ok := d.panDomains[domain]
 		if ok {
 			newUserdatas := make([]UserData, 0)
@@ -310,7 +322,10 @@ func (d*Domains)RemoveDomain(domain string, domainType DomainType, f func(domain
 }
 
 // 查找匹配的域名
+// 会转换成小写去匹配
 func (d*Domains)Find(domain string) (*Domain) {
+	domain = strings.ToLower(domain)
+
 	res := d.cacheGet(domain)
 	if res != nil {
 		return res

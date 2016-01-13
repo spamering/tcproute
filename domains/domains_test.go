@@ -41,14 +41,14 @@ func TestDomains(t *testing.T) {
 		}
 	}
 
-	add("163.com", Base, "1.163.com")
-	add("163.com", Base, "2.163.com")
-	add("baidu.com", Suffix, "1.baidu.com")
-	add("baidu.com", Suffix, "2.baidu.com")
-	add("*.qq.com", Pan, "1.qq.com")
-	add("*.qq.com", Pan, "2.qq.com")
-	add("ww?.google.com", Pan, "1.google.com")
-	add("ww?.google.com", Pan, "2.google.com")
+	add("163.Com", Base, "1.163.com")
+	add("163.cOm", Base, "2.163.com")
+	add("Baidu.com", Suffix, "1.baidu.com")
+	add("baiDu.com", Suffix, "2.baidu.com")
+	add("*.Qq.com", Pan, "1.qq.com")
+	add("*.qQ.com", Pan, "2.qq.com")
+	add("ww?.Google.com", Pan, "1.google.com")
+	add("ww?.gooGle.com", Pan, "2.google.com")
 	add(`^www\..+?\.com$`, Regex, "1.xxx.com")
 	add(`^www\..+?\.com$`, Regex, "2.xxx.com")
 
