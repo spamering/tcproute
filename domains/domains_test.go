@@ -4,6 +4,33 @@ import (
 	"testing"
 )
 
+func TestDomainType(t *testing.T) {
+	v,err:=ParseDomainType(" bAse \r\n")
+	if err != nil||  v!=Base{
+		t.Error(err)
+	}
+
+	if v.String()!="Base"{
+		t.Error(`v.String()!="Base"`)
+	}
+
+
+	v,err=ParseDomainType(" 010101 \r\n")
+	if err == nil || v!=DomainType(0){
+		t.Error(err)
+	}
+
+	if v.String()!="Unknown"{
+		t.Error(v.String())
+	}
+
+	v,err=ParseDomainType(" SuFfix \r\n")
+	if err != nil||  v!=DomainType(2){
+		t.Error(err)
+	}
+}
+
+
 func TestDomains(t *testing.T) {
 
 	d := NewDomains(100)

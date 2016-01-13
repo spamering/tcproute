@@ -23,8 +23,38 @@ import (
 
 type DomainType int
 
+func ParseDomainType(v string) (DomainType, error) {
+	switch strings.TrimSpace(strings.ToLower(v)) {
+	case "base":
+		return Base, nil
+	case "suffix":
+		return Suffix, nil
+	case "pan":
+		return Pan, nil
+	case "regex":
+		return Regex, nil
+	default:
+		return 0, fmt.Errorf("类型：%v", v)
+	}
+}
+
+func (t*DomainType)String() string{
+	switch *t {
+	case Base:
+		return "Base"
+	case Suffix:
+		return "Suffix"
+	case Pan:
+		return "Pan"
+	case Regex:
+		return "Regex"
+	default:
+		return "Unknown"
+	}
+}
+
 const (
-	Base DomainType = iota  //基本匹配，必须完全一致才匹配
+	Base DomainType = 1+iota  //基本匹配，必须完全一致才匹配
 	Suffix                  // 后缀匹配 ， abc.com 匹配 www.abc.com 、123.abc.com、123.456.abc.com 及 abc.com
 	Pan                     // 泛解析 ，处理 * 及 ?
 	Regex                 //正则，正则表达式
