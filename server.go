@@ -64,7 +64,7 @@ func (srv *Server) ListAndServe() error {
 
 	ln, err := net.Listen("tcp", srv.Addr)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	srv.ln = ln
 
