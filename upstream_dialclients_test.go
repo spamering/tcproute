@@ -72,17 +72,17 @@ Type="Suffix"
 	time.Sleep(5 * time.Second)
 
 	// 测试白名单效果
-	if dialclients := clients.Get("www.163.com"); len(dialclients) != 1 || dialclients[0].name != "direct" {
+	if dialclients, edit := clients.Get("www.163.com"); edit != true || len(dialclients) != 1 || dialclients[0].name != "direct" {
 		t.Error(clients)
 	}
 
 	// 测试黑名单效果
-	if dialclients := clients.Get("www.xxx.com"); len(dialclients) != 1 || dialclients[0].name != "http" {
+	if dialclients, edit := clients.Get("www.xxx.com"); edit != true || len(dialclients) != 1 || dialclients[0].name != "http" {
 		t.Error(clients)
 	}
 
 	// 测试普通域名效果
-	if dialclients := clients.Get("www.9999999.com"); len(dialclients) != 2 {
+	if dialclients, edit := clients.Get("www.9999999.com"); len(dialclients) != 2 || edit != false {
 		t.Error(clients)
 	}
 
