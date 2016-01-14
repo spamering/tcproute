@@ -105,7 +105,21 @@ func (h*hostsDns)Config(c *DnschanHostsConfig) error {
 	}
 
 	for _, hosts := range c.Hostss {
+		if strings.TrimSpace(hosts.Type) == "" {
+			hosts.Type = "base"
+		}
+	}
+
+	for _, hosts := range c.Hostss {
 		// 解析更新间隔
+		if lpath := strings.ToLower(hosts.Path);
+		hosts.UpdateInterval == "" &&
+		strings.HasPrefix(lpath, "http://") == false&&
+		strings.HasPrefix(lpath, "https://") == false {
+			// 本地文件不存在更新间隔时自动补一个，其实没有用处。
+			hosts.UpdateInterval = "1h"
+		}
+
 		updateInterval, err := time.ParseDuration(hosts.UpdateInterval)
 		if err != nil {
 			newUFile.Close()
@@ -113,18 +127,8 @@ func (h*hostsDns)Config(c *DnschanHostsConfig) error {
 		}
 
 		// 类型
-		var domainType domains.DomainType
-		switch strings.TrimSpace(strings.ToLower(hosts.Type)) {
-		case "base":
-			domainType = domains.Base
-		case "suffix":
-			domainType = domains.Suffix
-		case "pan":
-			domainType = domains.Pan
-		case "regex":
-			domainType = domains.Regex
-		default:
-			newUFile.Close()
+		 domainType ,err:=domains.ParseDomainType(hosts.Type)
+		if err!=nil{
 			return fmt.Errorf("未知的 hosts 类型：%v", hosts.Type)
 		}
 

@@ -117,7 +117,7 @@ func TestLFile(t *testing.T) {
 
 }
 
-// 测试本地文件
+// 测试http文件
 func TestHFile(t *testing.T) {
 
 	ufile, err := NewUFile("", 1 * time.Second)
