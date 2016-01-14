@@ -215,8 +215,9 @@ func loadDomains(rc io.ReadCloser) ([]string) {
 	return res
 }
 
-
-func (d*DialClients)Get(addr string) []*DialClient {
+// 获得指定地址的可用线路列表
+// bool 返回 True 时表示使用了黑白名单。
+func (d*DialClients)Get(addr string) ([]*DialClient, bool) {
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
 		host = addr
@@ -243,5 +244,10 @@ func (d*DialClients)Get(addr string) []*DialClient {
 			}
 		}
 	}
-	return res
+
+	if len(res) == len(d.clients) {
+		return res, false
+	}else {
+		return res, true
+	}
 }
