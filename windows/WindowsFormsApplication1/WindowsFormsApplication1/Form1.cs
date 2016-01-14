@@ -77,8 +77,8 @@ namespace TcpRoute2Windows
         void tcpRouteStart()
         {
             tcpRoute = new Process();
-            tcpRoute.StartInfo.FileName = "D:\\golang\\src\\github.com\\gamexg\\TcpRoute2\\TcpRoute2.exe";
-            tcpRoute.StartInfo.WorkingDirectory = "D:\\golang\\src\\github.com\\gamexg\\TcpRoute2\\";
+            tcpRoute.StartInfo.FileName = "TcpRoute2.exe";
+            tcpRoute.StartInfo.WorkingDirectory = ".";
             tcpRoute.StartInfo.Arguments = "";
             tcpRoute.StartInfo.CreateNoWindow = true;
            // tcpRoute.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
