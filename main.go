@@ -54,7 +54,8 @@ func main() {
 		Hostss:serverConfig.Hosts,
 		CheckInterval:1 * time.Minute,
 	}); err != nil {
-		panic(err)
+		log.Print(err)
+		return
 	}
 
 	// 获得线路列表
@@ -65,7 +66,8 @@ func main() {
 
 	dialClients,err := NewDialClients(&configDialClients)
 	if err != nil {
-		panic(err)
+		log.Print(err)
+		return
 	}
 
 	// 创建 tcpping 上层代理
@@ -81,6 +83,9 @@ func main() {
 
 	// TODO: 各端口需要的安全级别
 
-	srv.ListAndServe()
+	if err:=srv.ListAndServe();err!=nil{
+		log.Print(err)
+		return
+	}
 }
 
