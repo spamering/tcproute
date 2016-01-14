@@ -2,7 +2,6 @@ package main
 import (
 	"time"
 	"net"
-	"github.com/gamexg/proxyclient"
 	"fmt"
 	"github.com/gamexg/TcpRoute2/netchan"
 	"sync"
@@ -17,20 +16,11 @@ import (
 */
 
 
-type DialClient struct {
-	name         string
-	dnsResolve   bool
-	pc           proxyclient.ProxyClient
-	dialCredit   int           // 线路可靠(信誉)程度
-	sleep        time.Duration // 线路在使用前等待的时间
-	correctDelay time.Duration // 对 tcping 修正
-}
-
 // TcpPing 方式选择最快连接上的。
 type tcppingUpStream struct {
-	errConn   *ErrConnService
-	dc        []DialClient
-	connCache *upStreamConnCache
+	errConn     *ErrConnService
+	dialClients *DialClients
+	connCache   *upStreamConnCache
 }
 
 type chanDialTimeoutUserData struct {
@@ -40,12 +30,12 @@ type chanDialTimeoutUserData struct {
 }
 
 
-func NewTcppingUpStream() (*tcppingUpStream) {
+func NewTcppingUpStream(dialClients *DialClients) (*tcppingUpStream) {
 
 	errConn := NewErrConnService()
 	connCache := NewUpStreamConnCache(errConn)
 
-	tUpstream := tcppingUpStream{errConn, make([]DialClient, 0, 5), connCache}
+	tUpstream := tcppingUpStream{errConn, dialClients, connCache}
 
 	return &tUpstream
 }
@@ -57,16 +47,9 @@ type dialTimeoutRes struct {
 	err          error
 }
 
-func (su*tcppingUpStream)AddUpStream(name, proxyUrl string, dnsResolve bool, credit int, sleep time.Duration, correctDelay time.Duration) error {
-	// 加入线路
+func (su*tcppingUpStream)SetDialClients(dialClients*DialClients) {
+	su.dialClients = dialClients
 
-	pc, err := proxyclient.NewProxyClient(proxyUrl)
-	if err != nil {
-		return fmt.Errorf("无法创建上级代理：%v", err)
-	}
-
-	su.dc = append(su.dc, DialClient{name, dnsResolve, pc, credit, sleep, correctDelay})
-	return nil
 }
 
 func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Duration) (net.Conn, UpStreamErrorReporting, error) {
@@ -113,9 +96,10 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 	// 另开一个线程进行连接并整理连接信息
 	go func() {
 		// 循环使用各个 upstream 进行连接
+		dc := su.dialClients.Get(address)
 		sw := sync.WaitGroup{}
-		sw.Add(len(su.dc))
-		for _, d := range su.dc {
+		sw.Add(len(dc))
+		for _, d := range dc {
 			d := d
 			go func() {
 				defer func() {sw.Done()}()
@@ -128,7 +112,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 				default:
 				}
 
-				userData := chanDialTimeoutUserData{d.name, address, &d}
+				userData := chanDialTimeoutUserData{d.name, address, d}
 				cerr := netchan.ChanDialTimeout(d.pc, d.dialCredit, connChan, exitChan, d.dnsResolve, &userData, nil, network, address, timeout)
 				if cerr != nil {
 					log.Printf("线路 %v 连接 %v 失败，错误：%v", d.name, address, cerr)

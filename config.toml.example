@@ -30,6 +30,30 @@ ProxyUrl="direct://0.0.0.0:0000"
 # 是否执行本地dns解析
 DnsResolve=true
 
+# 白名单 域名
+# 允许多份。
+[[UpStreams.Whitelist]]
+# 允许本地文件及 http 、https文件。
+# 本地文件是相对路径时是相对于 config.toml 文件所在目录。会检测hosts文件修改并自动重新载入。
+# 为了性能，不建议将 hosts 文件和日志等经常修改的文件放在同一目录。
+# http、https 按 UpdateInterval 间隔更新。
+Path="https://raw.githubusercontent.com/renzhn/MEOW/master/doc/sample-config/direct"
+# 网络 hosts 文件更新间隔
+# 最小有效值 1 分钟
+# 格式 "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+UpdateInterval="24h"
+# 域名类型
+# base 完整匹配，默认值。即 www.abc.com 只匹配 www.abc.com ，不匹配 aaa.www.abc.com 。
+# suffix 后缀匹配。即 abc.com 匹配 abc.com、www.abc.com、aaa.www.abc.com，不匹配 aaaabc.com。
+# pan 泛解析匹配。即 *.abc.com 匹配 www.abc.com 、aaa.www.abc.com。不匹配 .abc.com。?.abc.com 匹配 a.abc.com。
+# regex 正则匹配。即 ^.+?.com$ 匹配 www.abc.com 、aaa.www.abc.com。注意：完整匹配时不要忘记 ^$ 。
+Type="suffix"
+
+# 黑名单
+#[[UpStreams.Blacklist]]
+#Path="https://raw.githubusercontent.com/renzhn/MEOW/master/doc/sample-config/proxy"
+#UpdateInterval="24h"
+#Type="Suffix"
 
 [[UpStreams]]
 Name="https-proxy.com"

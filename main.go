@@ -9,27 +9,17 @@ import (
 	"log"
 	"github.com/gamexg/TcpRoute2/netchan"
 	"path/filepath"
-	"strings"
 )
 
 const version = "0.4.5"
 
 type ServerConfig struct {
 	Addr          string `default:":5050"`
-	UpStreams     []ServerConfigUpStream
+	UpStreams     []*ConfigDialClient
 	PreHttpPorts  []int // 不使用默认值，好能检测配置文件是否有这个配置项
 	PreHttpsPorts []int
 	Hosts         []*netchan.DnschanHostsConfigHosts
 	Config        string `default:""`
-}
-
-type ServerConfigUpStream struct {
-	Name         string`default:""`
-	ProxyUrl     string`default:"direct://0.0.0.0:0000"`
-	DnsResolve   bool `default:"false"`
-	Credit       int `default:"0"`
-	Sleep        int `default:"0"`
-	CorrectDelay int `default:"0"`
 }
 
 
@@ -67,18 +57,22 @@ func main() {
 		panic(err)
 	}
 
-	// 创建 tcpping 上层代理
-	upStream := NewTcppingUpStream()
-
-	for _, up := range serverConfig.UpStreams {
-		if up.Name == "" {
-			up.Name = up.ProxyUrl
-		}
-
-		if err := upStream.AddUpStream(up.Name, up.ProxyUrl, up.DnsResolve, up.Credit, time.Duration(up.Sleep) * time.Millisecond, time.Duration(up.CorrectDelay) * time.Millisecond); err != nil {
-			panic(err)
-		}
+	// 获得线路列表
+	configDialClients := ConfigDialClients{
+		UpStreams:serverConfig.UpStreams,
+		BasePath:config_dir,
 	}
+
+	dialClients,err := NewDialClients(&configDialClients)
+	if err != nil {
+		panic(err)
+	}
+
+	// 创建 tcpping 上层代理
+	upStream := NewTcppingUpStream(dialClients)
+
+
+
 
 	// 服务器监听
 	srv := NewServer(serverConfig.Addr, upStream)

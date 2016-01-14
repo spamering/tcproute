@@ -51,6 +51,30 @@ ProxyUrl="direct://0.0.0.0:0000"
 # 是否执行本地dns解析
 DnsResolve=true
 
+# 白名单 域名
+# 允许多份。
+[[UpStreams.Whitelist]]
+# 允许本地文件及 http 、https文件。
+# 本地文件是相对路径时是相对于 config.toml 文件所在目录。会检测hosts文件修改并自动重新载入。
+# 为了性能，不建议将 hosts 文件和日志等经常修改的文件放在同一目录。
+# http、https 按 UpdateInterval 间隔更新。
+Path="https://raw.githubusercontent.com/renzhn/MEOW/master/doc/sample-config/direct"
+# 网络 hosts 文件更新间隔
+# 最小有效值 1 分钟
+# 格式 "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+UpdateInterval="24h"
+# 域名类型
+# base 完整匹配，默认值。即 www.abc.com 只匹配 www.abc.com ，不匹配 aaa.www.abc.com 。
+# suffix 后缀匹配。即 abc.com 匹配 abc.com、www.abc.com、aaa.www.abc.com，不匹配 aaaabc.com。
+# pan 泛解析匹配。即 *.abc.com 匹配 www.abc.com 、aaa.www.abc.com。不匹配 .abc.com。?.abc.com 匹配 a.abc.com。
+# regex 正则匹配。即 ^.+?.com$ 匹配 www.abc.com 、aaa.www.abc.com。注意：完整匹配时不要忘记 ^$ 。
+Type="suffix"
+
+# 黑名单
+#[[UpStreams.Blacklist]]
+#Path="https://raw.githubusercontent.com/renzhn/MEOW/master/doc/sample-config/proxy"
+#UpdateInterval="24h"
+#Type="Suffix"
 
 [[UpStreams]]
 Name="https-proxy.com"
@@ -96,6 +120,12 @@ CorrectDelay=0
 #Path="http://www.abc.com/hosts"
 # 感谢 https://github.com/racaljk/hosts 项目维护 hosts
 Path="https://raw.githubusercontent.com/racaljk/hosts/master/hosts"
+# hosts 域名类型，标准的 hosts 文件都是 base 类型。
+# base 完整匹配，默认值。即 www.abc.com 只匹配 www.abc.com ，不匹配 aaa.www.abc.com 。
+# suffix 后缀匹配。即 abc.com 匹配 abc.com、www.abc.com、aaa.www.abc.com，不匹配 aaaabc.com。
+# pan 泛解析匹配。即 *.abc.com 匹配 www.abc.com 、aaa.www.abc.com。不匹配 .abc.com。?.abc.com 匹配 a.abc.com。
+# regex 正则匹配。即 ^.+?.com$ 匹配 www.abc.com 、aaa.www.abc.com。注意：完整匹配时不要忘记 ^$ 。
+Type="base"
 # 网络 hosts 文件更新间隔
 # 最小有效值 1 分钟
 # 格式 "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
@@ -123,7 +153,13 @@ redsocks、Proxifier 全局代理及部分应用会执行本地DNS解析，这�
 
 增加了代理级别的 hosts 文件，支持本地及网络hosts文件。通过hosts即使在不存在上层代理的情况下也可以优化网络访问。hosts 文件同样也有信誉度功能。
 
-感谢 https://github.com/racaljk/hosts 项目维护 hosts
+感谢 https://github.com/racaljk/hosts 项目维护 hosts 。
+
+## 白名单、黑名单功能
+
+允许指定的域名走制定的线路，指定的域名不走指定的线路。
+
+感谢 https://github.com/renzhn/MEOW 维护了国内域名白名单。
 
 ## 具体细节
 * 对 DNS 解析获得的多个IP同时尝试连接，最终使用最快建立的连接。
