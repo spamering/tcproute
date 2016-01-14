@@ -96,7 +96,7 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 	// 另开一个线程进行连接并整理连接信息
 	go func() {
 		// 循环使用各个 upstream 进行连接
-		dc := su.dialClients.Get(address)
+		dc, edit := su.dialClients.Get(address)
 		sw := sync.WaitGroup{}
 		sw.Add(len(dc))
 		for _, d := range dc {
@@ -104,8 +104,10 @@ func (su*tcppingUpStream)DialTimeout(network, address string, timeout time.Durat
 			go func() {
 				defer func() {sw.Done()}()
 
-				// 线路强制延迟功能
-				time.Sleep(d.sleep)
+				// 未使用黑白名单时连接前执行延迟
+				if edit == false && d.sleep != 0 {
+					time.Sleep(d.sleep)
+				}
 				select {
 				case <-exitChan:
 					return
