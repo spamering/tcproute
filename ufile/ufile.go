@@ -23,16 +23,17 @@ import (
 type UserData interface{}
 
 type UFile struct {
-	basePath      string            //绝对路径
-	dirs          map[string]int    // 目录内需要监听的文件数
-	files         map[string]*uFile // map 修改需要使用 rwm。uFile是只读的，运行中不允许修改。
-	rwm           sync.RWMutex
-	downM         sync.Mutex        // down 下载锁，防止多次重复下载。
-	watcher       *fsnotify.Watcher //监听本地文件修改。实际监听的是hosts所在的目录
-									// configCond sync.Cond
-	exited        bool              // 是否已退出
-	checkInterval time.Duration     //http检测间隔
-	ResChan       chan (*Res)       // 结果信道，加载器关闭时信道也会关闭。
+	basePath           string            //绝对路径
+	dirs               map[string]int    // 目录内需要监听的文件数
+	files              map[string]*uFile // map 修改需要使用 rwm。uFile是只读的，运行中不允许修改。
+	rwm                sync.RWMutex
+	watcher            *fsnotify.Watcher //监听本地文件修改。实际监听的是hosts所在的目录
+										 // configCond sync.Cond
+	exited             bool              // 是否已退出
+	checkInterval      time.Duration     //http检测间隔
+	ResChan            chan (*Res)       // 结果信道，加载器关闭时信道也会关闭。
+	httpLoopAddChan    chan (int)        // http loop Add 函数信道，add新的file时会向这个信道添加内容.关闭 ufile 时会关闭这个信道
+	httpLoopSleepTimer *time.Ticker       // http loop 检查定时器。
 }
 
 type Res struct {
@@ -78,7 +79,10 @@ func NewUFile(basePath string, checkInterval time.Duration) (*UFile, error) {
 		watcher:watcher,
 		checkInterval:checkInterval,
 		ResChan:make(chan *Res, 2),
+		httpLoopAddChan:make(chan int, 1),
+		httpLoopSleepTimer :time.NewTicker(checkInterval),
 	}
+
 	go uf.loop()
 
 	return &uf, nil
@@ -105,33 +109,19 @@ func (u*UFile)Close() {
 
 	u.exited = true
 	u.watcher.Close()
-	u.watcher = nil
-	u.dirs = nil
-	u.files = nil
+	//u.watcher = nil
+	u.dirs = make(map[string]int)
+	u.files = make(map[string]*uFile)
 	close(u.ResChan)
+	close(u.httpLoopAddChan)
+	u.httpLoopSleepTimer.Stop()
 }
 
 // 下载文件
 // 允许本地文件及远程文件
 // 可能会阻塞到结果信道。
 func (u*UFile)down(f*uFile) (rerr error) {
-	// 只允许一个 down进程运行，防止第一次添加时 Add 函数调用 + loop调用下载造成重复下载2次。
-	u.downM.Lock()
-	defer u.downM.Unlock()
-
 	now := time.Now()
-	var utime time.Time
-
-	func() {
-		u.rwm.RLock()
-		defer u.rwm.RUnlock()
-		utime = f.utime
-	}()
-
-	// 再次检查是否需要更新，防止第一次添加时 Add 函数调用 + loop调用下载造成重复下载2次。
-	if utime.After(now) {
-		return
-	}
 
 	res := Res{
 		RawPath:f.RawPath,
@@ -225,8 +215,16 @@ func (u*UFile)Add(path string, updateInterval time.Duration, userdata UserData) 
 	u.files[path] = &uf
 
 	// 手工启动第一次下载
-	// 本地文件需要这一步，网络文件为了立刻就下载也需要这一步。
-	go u.down(&uf)
+	if local == true {
+		// 本地文件立刻执行下载
+		go u.down(&uf)
+	}else {
+		// 网络文件唤醒 loop http 循环，执行一遍新的检查。
+		select {
+		case u.httpLoopAddChan <- 1:
+		default:
+		}
+	}
 
 	return nil
 }
@@ -323,32 +321,39 @@ func (u*UFile)loop_http() {
 		if u.isExited() {
 			return
 		}
-
-		var checkInterval time.Duration
-		now := time.Now()
-
-		// 临时保存需要更新数据
-		data := make([]*uFile, 0)
-
-		// 取出需要更新的内容，尽量短的使用写锁。
-		func() {
-			u.rwm.RLock()
-			defer u.rwm.RUnlock()
-			checkInterval = u.checkInterval
-
-			for _, f := range u.files {
-				if f.Local == false && now.After(f.utime) {
-					data = append(data, f)
-				}
-			}
-		}()
-
-		for _, f := range data {
-			u.down(f)
+		select {
+		case <-u.httpLoopAddChan:
+			u.loop_http_exec()
+		case <-u.httpLoopSleepTimer.C:
+			u.loop_http_exec()
 		}
-
-		time.Sleep(checkInterval)
 	}
 }
+
+func (u*UFile)loop_http_exec() {
+	var checkInterval time.Duration
+	now := time.Now()
+
+	// 临时保存需要更新数据
+	data := make([]*uFile, 0)
+
+	// 取出需要更新的内容，尽量短的使用写锁。
+	func() {
+		u.rwm.RLock()
+		defer u.rwm.RUnlock()
+		checkInterval = u.checkInterval
+
+		for _, f := range u.files {
+			if f.Local == false && now.After(f.utime) {
+				data = append(data, f)
+			}
+		}
+	}()
+
+	for _, f := range data {
+		u.down(f)
+	}
+}
+
 
 
