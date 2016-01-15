@@ -27,6 +27,7 @@ type UFile struct {
 	dirs          map[string]int    // 目录内需要监听的文件数
 	files         map[string]*uFile // map 修改需要使用 rwm。uFile是只读的，运行中不允许修改。
 	rwm           sync.RWMutex
+	downM         sync.Mutex        // down 下载锁，防止多次重复下载。
 	watcher       *fsnotify.Watcher //监听本地文件修改。实际监听的是hosts所在的目录
 									// configCond sync.Cond
 	exited        bool              // 是否已退出
@@ -114,6 +115,24 @@ func (u*UFile)Close() {
 // 允许本地文件及远程文件
 // 可能会阻塞到结果信道。
 func (u*UFile)down(f*uFile) (rerr error) {
+	// 只允许一个 down进程运行，防止第一次添加时 Add 函数调用 + loop调用下载造成重复下载2次。
+	u.downM.Lock()
+	defer u.downM.Unlock()
+
+	now := time.Now()
+	var utime time.Time
+
+	func() {
+		u.rwm.RLock()
+		defer u.rwm.RUnlock()
+		utime = f.utime
+	}()
+
+	// 再次检查是否需要更新，防止第一次添加时 Add 函数调用 + loop调用下载造成重复下载2次。
+	if utime.After(now) {
+		return
+	}
+
 	res := Res{
 		RawPath:f.RawPath,
 		Path:f.Path,
@@ -140,8 +159,7 @@ func (u*UFile)down(f*uFile) (rerr error) {
 		}
 	}
 
-	now := time.Now()
-	go func() {
+	func() {
 		u.rwm.Lock()
 		defer u.rwm.Unlock()
 		f.utime = now.Add(f.updateInterval)
@@ -158,7 +176,7 @@ func (u*UFile)down(f*uFile) (rerr error) {
 
 // 添加文件（允许本地路径及远程路径）
 // 即使本地文件不存在只要目录存在就会安全返回，通过信道返回文件不存在的提示。等文件创建时会再次通过信道返回正确的内容。
-// url 只要格式正确就会返回，之后会尝试下载文件，成功失败都会通过信道返回结果。
+// url 只要格式正确就会返回，之后会启动新协程下载文件，成功失败都会通过信道返回结果。
 // 注意：添加本地文件时文件所在的目录必须存在，不存在会尝试创建，创建失败会添加失败，返回错误。
 func (u*UFile)Add(path string, updateInterval time.Duration, userdata UserData) error {
 	local := false
