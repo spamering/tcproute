@@ -5,6 +5,7 @@ go:
   - tip
 
 before_deploy:
+  - sudo apt-get install -y dos2unix unix2dos
   - wget https://github.com/GameXG/TcpRoute2/releases/download/WindowsGuiV0.5.2/TcpRoute2Windows.exe
   - wget https://github.com/GameXG/TcpRoute2/releases/download/WindowsGuiV0.5.2/TcpRoute2Windows.exe.config
   - GOARCH=arm GOOS=linux   go build -o TcpRoute2-linux-arm
@@ -24,7 +25,7 @@ before_deploy:
   - zip -r TcpRoute2-linux-amd64.zip TcpRoute2-linux-amd64 config.toml.example README.txt
   - zip -r TcpRoute2-freebsd-amd64.zip TcpRoute2-freebsd-amd64 config.toml.example README.txt
   - zip -r TcpRoute2-darwin-amd64.zip TcpRoute2-darwin-amd64 config.toml.example README.txt
-  - sed -i 's/$/\r/' config.toml.example README.txt
+  - unix2dos config.toml.example README.txt
   - zip -r TcpRoute2-windows-386.zip TcpRoute2-windows-386.exe config.toml.example README.txt
   - zip -r TcpRoute2-windows-amd64.zip TcpRoute2-windows-amd64.exe config.toml.example README.txt
   - cp TcpRoute2-windows-amd64.exe TcpRoute2.exe
