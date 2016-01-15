@@ -205,6 +205,7 @@ func (h*hostsDns)loop(uf *ufile.UFile, ds*domains.Domains) {
 				ds.Add(domainName, userdata.domainType, &dUserdata)
 			}
 		}()
+		log.Printf("已重新载入 hosts文件(%v) ", file.Path)
 	}
 }
 

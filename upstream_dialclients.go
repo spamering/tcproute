@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"strings"
 	"net"
+	"log"
 )
 
 
@@ -193,6 +194,7 @@ func (d*DialClients)loop(uf *ufile.UFile) {
 		for _, domain := range domainList {
 			userdata.domains.Add(domain, userdata.domainType, userdata.name)
 		}
+		log.Printf("已重新载入域名文件(%v) ", r.Path)
 	}
 }
 
