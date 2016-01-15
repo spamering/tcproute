@@ -33,7 +33,7 @@ type UFile struct {
 	checkInterval      time.Duration     //http检测间隔
 	ResChan            chan (*Res)       // 结果信道，加载器关闭时信道也会关闭。
 	httpLoopAddChan    chan (int)        // http loop Add 函数信道，add新的file时会向这个信道添加内容.关闭 ufile 时会关闭这个信道
-	httpLoopSleepTimer *time.Ticker       // http loop 检查定时器。
+	httpLoopSleepTimer *time.Ticker      // http loop 检查定时器。
 }
 
 type Res struct {
@@ -144,7 +144,10 @@ func (u*UFile)down(f*uFile) (rerr error) {
 		if err != nil {
 			rerr = err
 			res.Err = err
-		}else {
+		} else if r.StatusCode != 200 {
+			rerr = fmt.Errorf("服务器错误，返回代码：%v", r.StatusCode)
+			res.Err = rerr
+		} else {
 			res.Rc = r.Body
 		}
 	}
