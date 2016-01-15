@@ -21,10 +21,11 @@ before_deploy:
   - zip -r TcpRoute2-linux-386.zip TcpRoute2-linux-386 config.toml.example README.txt
   - zip -r TcpRoute2-freebsd-386.zip TcpRoute2-freebsd-386 config.toml.example README.txt
   - zip -r TcpRoute2-darwin-386.zip TcpRoute2-darwin-386 config.toml.example README.txt
-  - zip -r TcpRoute2-windows-386.zip TcpRoute2-windows-386.exe config.toml.example README.txt
   - zip -r TcpRoute2-linux-amd64.zip TcpRoute2-linux-amd64 config.toml.example README.txt
   - zip -r TcpRoute2-freebsd-amd64.zip TcpRoute2-freebsd-amd64 config.toml.example README.txt
   - zip -r TcpRoute2-darwin-amd64.zip TcpRoute2-darwin-amd64 config.toml.example README.txt
+  - sed -i 's/$/\r/' config.toml.example README.txt
+  - zip -r TcpRoute2-windows-386.zip TcpRoute2-windows-386.exe config.toml.example README.txt
   - zip -r TcpRoute2-windows-amd64.zip TcpRoute2-windows-amd64.exe config.toml.example README.txt
   - cp TcpRoute2-windows-amd64.exe TcpRoute2.exe
   - zip -r TcpRoute2-windows-gui-amd64.zip TcpRoute2.exe config.toml.example TcpRoute2Windows.exe TcpRoute2Windows.exe.config README.txt
