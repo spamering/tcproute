@@ -127,8 +127,8 @@ func (h*hostsDns)Config(c *DnschanHostsConfig) error {
 		}
 
 		// 类型
-		 domainType ,err:=domains.ParseDomainType(hosts.Type)
-		if err!=nil{
+		domainType, err := domains.ParseDomainType(hosts.Type)
+		if err != nil {
 			return fmt.Errorf("未知的 hosts 类型：%v", hosts.Type)
 		}
 
@@ -169,6 +169,7 @@ func (h*hostsDns)Config(c *DnschanHostsConfig) error {
 func (h*hostsDns)loop(uf *ufile.UFile, ds*domains.Domains) {
 	for file := range uf.ResChan {
 		if file.Err != nil {
+			log.Printf("载入 hosts文件(%v) 失败，错误：%v", file.Path, file.Err)
 			continue
 		}
 
@@ -205,7 +206,7 @@ func (h*hostsDns)loop(uf *ufile.UFile, ds*domains.Domains) {
 				ds.Add(domainName, userdata.domainType, &dUserdata)
 			}
 		}()
-		log.Printf("已重新载入 hosts文件(%v) ", file.Path)
+		log.Printf("载入 hosts文件成功(%v) ", file.Path)
 	}
 }
 

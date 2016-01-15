@@ -171,6 +171,7 @@ func (d*DialClients)Config(config*ConfigDialClients) (rerr error) {
 func (d*DialClients)loop(uf *ufile.UFile) {
 	for r := range uf.ResChan {
 		if r.Err != nil || r.Rc == nil {
+			log.Printf("载入 hosts文件(%v) 失败，错误：%v", r.Path, r.Err)
 			continue
 		}
 		defer r.Rc.Close()
@@ -194,7 +195,7 @@ func (d*DialClients)loop(uf *ufile.UFile) {
 		for _, domain := range domainList {
 			userdata.domains.Add(domain, userdata.domainType, userdata.name)
 		}
-		log.Printf("已重新载入域名文件(%v) ", r.Path)
+		log.Printf("载入域名文件(%v) 成功。", r.Path)
 	}
 }
 
