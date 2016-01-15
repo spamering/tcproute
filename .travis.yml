@@ -5,6 +5,8 @@ go:
   - tip
 
 before_deploy:
+  - wget https://github.com/GameXG/TcpRoute2/releases/download/WindowsGuiV0.5.2/TcpRoute2Windows.exe
+  - wget https://github.com/GameXG/TcpRoute2/releases/download/WindowsGuiV0.5.2/TcpRoute2Windows.exe.config
   - GOARCH=arm GOOS=linux   go build -o TcpRoute2-linux-arm
   - GOARCH=386 GOOS=linux   go build -o TcpRoute2-linux-386
   - GOARCH=386 GOOS=freebsd   go build -o TcpRoute2-freebsd-386
@@ -14,21 +16,38 @@ before_deploy:
   - GOARCH=amd64 GOOS=freebsd   go build -o TcpRoute2-freebsd-amd64
   - GOARCH=amd64 GOOS=darwin  go build -o TcpRoute2-darwin-amd64
   - GOARCH=amd64 GOOS=windows go build -o TcpRoute2-windows-amd64.exe
+  - mv README.md README.txt
+  - zip -r TcpRoute2-linux-arm.zip TcpRoute2-linux-arm config.toml.example README.txt
+  - zip -r TcpRoute2-linux-386.zip TcpRoute2-linux-386 config.toml.example README.txt
+  - zip -r TcpRoute2-freebsd-386.zip TcpRoute2-freebsd-386 config.toml.example README.txt
+  - zip -r TcpRoute2-darwin-386.zip TcpRoute2-darwin-386 config.toml.example README.txt
+  - zip -r TcpRoute2-windows-386.zip TcpRoute2-windows-386.exe config.toml.example README.txt
+  - zip -r TcpRoute2-linux-amd64.zip TcpRoute2-linux-amd64 config.toml.example README.txt
+  - zip -r TcpRoute2-freebsd-amd64.zip TcpRoute2-freebsd-amd64 config.toml.example README.txt
+  - zip -r TcpRoute2-darwin-amd64.zip TcpRoute2-darwin-amd64 config.toml.example README.txt
+  - zip -r TcpRoute2-windows-amd64.zip TcpRoute2-windows-amd64.exe config.toml.example README.txt
+  - cp TcpRoute2-windows-amd64.exe TcpRoute2.exe
+  - zip -r TcpRoute2-windows-gui-amd64.zip TcpRoute2.exe config.toml.example TcpRoute2Windows.exe TcpRoute2Windows.exe.config README.txt
+  - rm TcpRoute2.exe
+  - cp TcpRoute2-windows-386.exe TcpRoute2.exe
+  - zip -r TcpRoute2-windows-gui-386.zip TcpRoute2.exe config.toml.example TcpRoute2Windows.exe TcpRoute2Windows.exe.config README.txt
 
 deploy:
   provider: releases
   api_key: $CI_USER_TOKEN
   skip_cleanup: true
   file:
-    - TcpRoute2-linux-arm
-    - TcpRoute2-linux-386
-    - TcpRoute2-freebsd-386
-    - TcpRoute2-darwin-386
-    - TcpRoute2-windows-386.exe
-    - TcpRoute2-linux-amd64
-    - TcpRoute2-freebsd-amd64
-    - TcpRoute2-darwin-amd64
-    - TcpRoute2-windows-amd64.exe
+    - TcpRoute2-linux-arm.zip
+    - TcpRoute2-linux-386.zip
+    - TcpRoute2-freebsd-386.zip
+    - TcpRoute2-darwin-386.zip
+    - TcpRoute2-windows-386.zip
+    - TcpRoute2-linux-amd64.zip
+    - TcpRoute2-freebsd-amd64.zip
+    - TcpRoute2-darwin-amd64.zip
+    - TcpRoute2-windows-amd64.zip
+    - TcpRoute2-windows-gui-386.zip
+    - TcpRoute2-windows-gui-amd64.zip
   on:
     tags: true
     all_branches: true
