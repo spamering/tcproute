@@ -5,6 +5,7 @@ go:
   - tip
 
 before_deploy:
+  - sudo apt-get -qq update
   - sudo apt-get install -y dos2unix unix2dos
   - wget https://github.com/GameXG/TcpRoute2/releases/download/WindowsGuiV0.5.2/TcpRoute2Windows.exe
   - wget https://github.com/GameXG/TcpRoute2/releases/download/WindowsGuiV0.5.2/TcpRoute2Windows.exe.config
