@@ -34,6 +34,14 @@ namespace TcpRoute2Windows
 
         private void button1_Click(object sender, EventArgs e)
         {
+            if (checkBox1.Checked == true)
+            {
+                autoRestart = true;
+            }
+            else
+            {
+                autoRestart = false;
+            }
             errExit = 0;
             start();
         }
@@ -42,10 +50,7 @@ namespace TcpRoute2Windows
 
         void TcpRouteExit(object sender, EventArgs e)
         {
-            启动ToolStripMenuItem.Enabled = true;
-            停止ToolStripMenuItem.Enabled = false;
-            button1.Enabled = true;
-            button2.Enabled = false;
+            upStatus();
             intoText("tcproute 退出" + Environment.NewLine);
 
             if (autoRestart == true && checkBox1.Checked == true && errExit < 5)
@@ -57,21 +62,13 @@ namespace TcpRoute2Windows
 
         void start()
         {
-            if (checkBox1.Checked == true)
-            {
-                autoRestart = true;
-            }
-            else
-            {
-                autoRestart = false;
-            }
-            启动ToolStripMenuItem.Enabled = false;
-            停止ToolStripMenuItem.Enabled = true;
-            button1.Enabled = false;
-            button2.Enabled = true;
-            ThreadStart ts = new ThreadStart(tcpRouteStart);
-            Thread th = new Thread(ts);
-            th.Start();
+
+            // ThreadStart ts = new ThreadStart(tcpRouteStart);
+            // Thread th = new Thread(ts);
+            //  th.Start();
+
+            tcpRouteStart();
+            upStatus();
         }
 
         void tcpRouteStart()
@@ -81,7 +78,7 @@ namespace TcpRoute2Windows
             tcpRoute.StartInfo.WorkingDirectory = ".";
             tcpRoute.StartInfo.Arguments = "";
             tcpRoute.StartInfo.CreateNoWindow = true;
-           // tcpRoute.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            // tcpRoute.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
             tcpRoute.StartInfo.UseShellExecute = false;
             tcpRoute.StartInfo.RedirectStandardOutput = true;
             tcpRoute.StartInfo.StandardOutputEncoding = Encoding.UTF8;
@@ -102,10 +99,36 @@ namespace TcpRoute2Windows
             tcpRoute.BeginOutputReadLine();
             tcpRoute.BeginErrorReadLine();
 
-            tcpRoute.WaitForExit();
+            //   tcpRoute.WaitForExit();
         }
 
-
+        void upStatus()
+        {
+            try
+            {
+                if (tcpRoute != null && tcpRoute.HasExited == false)
+                {
+                    启动ToolStripMenuItem.Enabled = false;
+                    停止ToolStripMenuItem.Enabled = true;
+                    button1.Enabled = false;
+                    button2.Enabled = true;
+                }
+                else
+                {
+                    启动ToolStripMenuItem.Enabled = true;
+                    停止ToolStripMenuItem.Enabled = false;
+                    button1.Enabled = true;
+                    button2.Enabled = false;
+                }
+            }
+            catch (Exception e)
+            {
+                启动ToolStripMenuItem.Enabled = true;
+                停止ToolStripMenuItem.Enabled = false;
+                button1.Enabled = true;
+                button2.Enabled = false;
+            }
+        }
 
 
         void intoText(string buf)
@@ -161,7 +184,7 @@ namespace TcpRoute2Windows
                 textBox1.Text = textBox1.Text.Remove(0, textBox1.Lines[0].Length + Environment.NewLine.Length);
             }
             textBox1.SelectionStart = textBox1.Text.Length;
-            textBox1.ScrollToCaret();            
+            textBox1.ScrollToCaret();
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -179,7 +202,7 @@ namespace TcpRoute2Windows
 
         private void notifyIcon1_DoubleClick(object sender, EventArgs e)
         {
-            if (this.WindowState== FormWindowState.Minimized)
+            if (this.WindowState == FormWindowState.Minimized)
             {
                 this.Show();
                 this.WindowState = FormWindowState.Normal;
@@ -200,6 +223,14 @@ namespace TcpRoute2Windows
 
         private void 启动ToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            if (checkBox1.Checked == true)
+            {
+                autoRestart = true;
+            }
+            else
+            {
+                autoRestart = false;
+            }
             errExit = 0;
             start();
         }
