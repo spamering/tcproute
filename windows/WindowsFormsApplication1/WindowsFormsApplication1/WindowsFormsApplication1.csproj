@@ -34,7 +34,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>www.ico.la_fcaef2f688d85be9a491311b4dc24e40_128X128.ico</ApplicationIcon>
+    <ApplicationIcon>www.ico.la_37153cb5766ad2362584bbbade9c298f_48X48.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -85,6 +85,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="www.ico.la_37153cb5766ad2362584bbbade9c298f_48X48.ico" />
     <Content Include="www.ico.la_fcaef2f688d85be9a491311b4dc24e40_128X128.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
