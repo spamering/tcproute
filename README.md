@@ -1,6 +1,6 @@
 # TcpRoute2
 
-[![Build Status](https://travis-ci.org/GameXG/TcpRoute2.svg)](https://travis-ci.org/GameXG/TcpRoute2)
+[![Build Status](https://travis-ci.org/GameXG/TcpRoute2.svg)](https://travis-ci.org/GameXG/TcpRoute2) [![release](https://img.shields.io/github/release/gamexg/tcproute2.svg)](https://github.com/GameXG/TcpRoute2/releases) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/GameXG/TcpRoute2/master/LICENSE)  [![platform](https://img.shields.io/badge/platform-%20windows%20%7C%20linux%20%7C%20freebsd%20%7C%20darwin%20-yellow.svg)](https://github.com/GameXG/TcpRoute2/releases)
 
 
 [TcpRoute](https://github.com/GameXG/TcpRoute), TCP 层的路由器。对于 TCP 连接自动从多个线路(允许任意嵌套)、多个域名解析结果中选择最优线路。TcpRoute2 是 golang 重写的版本。
