@@ -9,7 +9,6 @@ import (
 	"os"
 	"encoding/json"
 	"io"
-	"github.com/golang/glog"
 	"strings"
 	"regexp"
 	"sync"
@@ -76,7 +75,7 @@ func NewFileDns(fpath string) (*FileDNS, error) {
 		if err := dec.Decode(&r); err == io.EOF {
 			break
 		}else if err != nil {
-			glog.Warning(fmt.Sprintf("解析DNS记录文件错误：%v\r\n", err))
+			log.Warning(fmt.Sprintf("解析DNS记录文件错误：%v\r\n", err))
 			continue
 		}
 		ip := IpRecord{r.Ip, r.Ping, DefaultCredit}

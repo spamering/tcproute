@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"github.com/golang/glog"
 	vhost "github.com/peacekeeper/golang-github-inconshreveable-go-vhost-dev"
 )
 
@@ -124,7 +123,7 @@ func (s *TlsServer) HandlerTls(conn net.Conn) {
 
 		remoteConn, err := net.Dial("tcp", s.forwardAddr)
 		if err != nil {
-			glog.Warning(fmt.Printf("[ERR] dial(\"tcp\",%v):%v", s.forwardAddr, err))
+			log.Warning(fmt.Printf("[ERR] dial(\"tcp\",%v):%v", s.forwardAddr, err))
 			return
 		}
 		defer remoteConn.Close()
@@ -137,7 +136,7 @@ func (s *TlsServer) HandlerTls(conn net.Conn) {
 
 		err := tlsConn.Handshake()
 		if err != nil {
-			glog.Warning(err)
+			log.Warning(err)
 			return
 		}
 

@@ -2,13 +2,16 @@
 package main
 
 import (
-	"github.com/koding/multiconfig"
 	"time"
 	"flag"
 	"fmt"
 	"log"
 	"github.com/gamexg/TcpRoute2/netchan"
 	"path/filepath"
+	"github.com/BurntSushi/toml"
+	"os"
+	"io"
+	"bytes"
 )
 
 const version = "0.5.4"
@@ -19,14 +22,12 @@ type ServerConfig struct {
 	PreHttpPorts  []int // 不使用默认值，好能检测配置文件是否有这个配置项
 	PreHttpsPorts []int
 	Hosts         []*netchan.DnschanHostsConfigHosts
-	Config        string `default:""`
 }
 
 
 func main() {
 	printVer := flag.Bool("version", false, "print version")
-	config_path := flag.String("config", "config.toml", "配置文件路径")
-	flag.String("addr", ":5050", "绑定地址")
+	config_path_flag := flag.String("config", "config.toml", "配置文件路径")
 	flag.Parse()
 
 	if *printVer {
@@ -34,12 +35,24 @@ func main() {
 		return
 	}
 
-	config_dir := filepath.Dir(*config_path)
+	config_path, err := filepath.Abs(*config_path_flag)
+	if err != nil {
+		log.Fatal("配置文件路径错误：", err)
+	}
+	config_dir := filepath.Dir(config_path)
 
-	// 载入配置
-	m := multiconfig.NewWithPath(*config_path)
-	serverConfig := new(ServerConfig)
-	m.MustLoad(serverConfig)
+	// 打开配置文件
+	configFile, err := os.Open(config_path)
+	if err != nil {
+		log.Fatalf("无法打开配置文件(%v)，错误：%v", config_path, err)
+	}
+
+	// 读取配置
+	serverConfig := ServerConfig{}
+	_, err = toml.DecodeReader(configFile, &serverConfig)
+	if err != nil {
+		log.Fatal("解析配置文件错误：", err)
+	}
 
 	// 判断 客户端dns解析纠正功能
 	if len(serverConfig.PreHttpPorts) == 0 && len(serverConfig.PreHttpsPorts) == 0 {
@@ -85,11 +98,11 @@ func main() {
 			}
 			return nil
 		}
-		if err:=wbListFunc(v.Blacklist);err!=nil{
-			log.Println("黑名单配置错误：",err)
+		if err := wbListFunc(v.Blacklist); err != nil {
+			log.Println("黑名单配置错误：", err)
 		}
-		if err:=wbListFunc(v.Whitelist);err!=nil{
-			log.Println("白名单配置错误：",err)
+		if err := wbListFunc(v.Whitelist); err != nil {
+			log.Println("白名单配置错误：", err)
 		}
 	}
 

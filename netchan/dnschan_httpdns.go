@@ -3,9 +3,9 @@ import (
 	"time"
 	"net/url"
 	"net/http"
-	"github.com/golang/glog"
 	"fmt"
 	"encoding/json"
+	"log"
 )
 
 type httpDNS struct {
@@ -62,7 +62,7 @@ func (hd*httpDNS)query(domain string, RecordChan chan *DnsRecord, ExitChan chan 
 
 	resp, err := http.Get(newUrl.String())
 	if err != nil {
-		glog.Warning(fmt.Sprintf("httpDns query %v err:", domain, err))
+		log.Printf("httpDns query %v err:", domain, err)
 		return
 	}
 
@@ -73,7 +73,7 @@ func (hd*httpDNS)query(domain string, RecordChan chan *DnsRecord, ExitChan chan 
 	dec := json.NewDecoder(resp.Body)
 
 	if err := dec.Decode(&dnsRes); err != nil {
-		glog.Warning(fmt.Sprintf("httpDns query %v err:", domain, err))
+		log.Printf("httpDns query %v err:", domain, err)
 		return
 	}
 
