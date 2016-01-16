@@ -14,7 +14,7 @@ import (
 const version = "0.5.3"
 
 type ServerConfig struct {
-	Addr          string `default:":5050"`
+	Addr          string `default:"127.0.0.1:7070"`
 	UpStreams     []*ConfigDialClient
 	PreHttpPorts  []int // 不使用默认值，好能检测配置文件是否有这个配置项
 	PreHttpsPorts []int
