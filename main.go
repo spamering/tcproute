@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 )
 
-const version = "0.5.3"
+const version = "0.5.4"
 
 type ServerConfig struct {
 	Addr          string `default:"127.0.0.1:7070"`
