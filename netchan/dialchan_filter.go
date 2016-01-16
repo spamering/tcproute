@@ -1,6 +1,5 @@
 package netchan
 import (
-	"fmt"
 	"log"
 )
 
