@@ -75,7 +75,7 @@ func NewFileDns(fpath string) (*FileDNS, error) {
 		if err := dec.Decode(&r); err == io.EOF {
 			break
 		}else if err != nil {
-			log.Warning(fmt.Sprintf("解析DNS记录文件错误：%v\r\n", err))
+			log.Printf("解析DNS记录文件错误：%v\r\n", err)
 			continue
 		}
 		ip := IpRecord{r.Ip, r.Ping, DefaultCredit}

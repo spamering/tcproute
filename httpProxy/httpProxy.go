@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 	vhost "github.com/peacekeeper/golang-github-inconshreveable-go-vhost-dev"
+	"log"
 )
 
 /*
@@ -123,7 +124,7 @@ func (s *TlsServer) HandlerTls(conn net.Conn) {
 
 		remoteConn, err := net.Dial("tcp", s.forwardAddr)
 		if err != nil {
-			log.Warning(fmt.Printf("[ERR] dial(\"tcp\",%v):%v", s.forwardAddr, err))
+			log.Printf("[ERR] dial(\"tcp\",%v):%v", s.forwardAddr, err)
 			return
 		}
 		defer remoteConn.Close()
@@ -136,7 +137,7 @@ func (s *TlsServer) HandlerTls(conn net.Conn) {
 
 		err := tlsConn.Handshake()
 		if err != nil {
-			log.Warning(err)
+			log.Println(err)
 			return
 		}
 
