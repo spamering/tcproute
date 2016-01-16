@@ -34,7 +34,7 @@ func ParseDomainType(v string) (DomainType, error) {
 	case "regex":
 		return Regex, nil
 	default:
-		return 0, fmt.Errorf("类型：%v", v)
+		return 0, fmt.Errorf("DomainType 错误的值：%v", v)
 	}
 }
 

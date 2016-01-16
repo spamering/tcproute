@@ -123,7 +123,7 @@ func (h*hostsDns)Config(c *DnschanHostsConfig) error {
 		updateInterval, err := time.ParseDuration(hosts.UpdateInterval)
 		if err != nil {
 			newUFile.Close()
-			return fmt.Errorf("hosts 配置错误：updateInterval %v 格式不是正确的时间格式：%v", hosts.UpdateInterval, err)
+			return fmt.Errorf("hosts 配置错误：updateInterval (%v) 格式不是正确的时间格式：%v", hosts.UpdateInterval, err)
 		}
 
 		// 类型
