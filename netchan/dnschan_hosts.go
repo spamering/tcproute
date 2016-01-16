@@ -32,10 +32,10 @@ type DnschanHostsConfig struct {
 	Hostss        []*DnschanHostsConfigHosts
 }
 type DnschanHostsConfigHosts struct {
-	Path           string              //host 文件路径、本地或远程url(http、https)
-	UpdateInterval string `default:""` // 更新间隔、当使用远程 url 时检查更新间隔
-	Credit         int `default:"0"`   // dns信誉
-	Type           string
+	Path           string `required:"true"` // host 文件路径、本地或远程url(http、https)
+	UpdateInterval string `default:"24h"`   // 更新间隔、当使用远程 url 时检查更新间隔
+	Credit         int    `default:"0"`     // dns信誉
+	Type           string `default:"base"`
 }
 
 type ufileUserdata struct {

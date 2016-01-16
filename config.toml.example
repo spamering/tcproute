@@ -2,14 +2,242 @@
 # https://github.com/GameXG/TcpRoute2
 # 为 TOML 格式，格式说明：https://segmentfault.com/a/1190000000477752
 
-# 监听地址
-# 目前只对外提供 socks5 协议
+# TcpRoute 监听地址
+# 目前只对外提供 socks5 协议。
+#
+# addr = "127.0.0.1:7070"
+# 默认值，表示监听 127.0.0.1 的 7070 端口，仅本机使用 TcpRoute 时建议这样配置。
+# 将浏览器代理设置为 socks5 127.0.0.1:7070 即可使用 TcpRoute 代理访问网络。
+#
+# addr = ":7070"
+# 监听所有 ip 地址的 7070 端口，允许其他计算机使用 TcpRoute 访问网络时建议这样配置。
+# 将浏览器代理设置为 socks5 TcpRoute计算机IP:7070 即可使用 TcpRoute 代理访问网络。
+
 addr="127.0.0.1:7070"
 
+
+####################
+# 线路
+####################
+#
+# TcpRoute 将根据一定的策略使用这里指定的线路(上游代理)将收到的请求请求转发出去。
+#
+# 目前的策略是 TcpPing ，即同时使用多个线路建立连接，最终使用最快建立连接的线路处理请求。
+# 当某条线路访问某网站出现异常(响应超时、连接重置等)时将会被记录下来，下次访问同一网站时将跳过这个线路。
+# 允许通过黑白名单指定每个线路允许、拒绝访问指定的网站。
+#
+# 目前上游代理支持 直连、http、https、socks4、socks4a、socks5 及 ss 协议，其中 http、https、socks5、ss 支持密码认证。
+# 注意：直连也必须手工指定，当不指定直连线路时将不会使用直连转发请求。
+#
+##########
+# 线路(上游代理)配置说明
+##########
+# [[UpStreams]]
+#
+# Name="direct"
+# 线路名字，主要是日志使用。默认值为 ProxyUrl 项的内容。
+#
+#
+# ProxyUrl="direct://0.0.0.0:0000"
+# 线路(上游代理) URL
+# 提供代理的类型、地址、用户认证方式等信息。
+# 默认值为："direct://0.0.0.0:0000"
+#
+# 支持 直连、http、https、socks4、socks4a、socks5 及 ss 协议，其中 http、https、socks5、ss 支持密码认证。
+# 允许多层嵌套代理。代理部分已经拆分成了独立的库，详细配置信息可以到 https://github.com/GameXG/ProxyClient 参看。
+#
+# 可以通过参数指定一些特殊选项，例如，https 代理是否验证服务器 tls 证书。
+# 参数格式为：?参数名1=参数值1&参数名2=参数值2
+# 例如：https://123.123.123.123:8088?insecureskipverify=true
+#     全体协议可选参数： upProxy=http://145.2.1.3:8080 用于指定代理的上层代理，即代理嵌套。默认值：direct://0.0.0.0:0000
+#
+# 支持的代理协议：
+# http 代理 http://123.123.123.123:8088
+#     可选功能： 用户认证功能。格式：http://user:password@123.123.123:8080
+#     可选参数：standardheader=false true表示 CONNNET 请求包含标准的 Accept、Accept-Encoding、Accept-Language、User-Agent等头。默认值：false
+#
+# https 代理 https://123.123.123.123:8088
+#     可选功能： 用户认证功能，同 http 代理。
+#     可选参数：standardheader=false 同上 http 代理
+#     可选参数：insecureskipverify=false true表示跳过 https 证书验证。默认false。
+#     可选参数：domain=域名 指定https验证证书时使用的域名，默认为 host:port
+#
+# socks4 代理 socks4://123.123.123.123:5050
+#     注意：socks4 协议不支持远端 dns 解析
+#
+# socks4a 代理 socks4a://123.123.123.123:5050
+#
+# socks5 代理 socks5://123.123.123.123:5050
+#     可选功能：用户认证功能。支持无认证、用户名密码认证，格式同 http 代理。
+#
+# ss 代理 ss://method:passowd@123.123.123:5050
+#
+# 直连 direct://0.0.0.0:0000
+#     可选参数： LocalAddr=0.0.0.0:0 表示tcp连接绑定的本地ip及端口，默认值 0.0.0.0:0。
+#
+#
+# DnsResolve=true
+# 是否执行本地dns解析,只建议直连、socks4 线路设置为 true 。
+# 设置为 true 时将由 TcpRoute 进行本地 DNS 解析，目前主要是同时使用本地操作系统dns解析及 TcpRoute hosts dns解析。
+# 解析获得多个IP时将会同时建立到多个ip的连接，最终使用最快建立连接的ip。
+# 设置为 false 时将由上游代理负责dns解析。建议 http、https、socks4a、socks5、ss代理都设置为 false 。
+# 默认值 false
+#
+#
+# Credit=0
+# 线路的信誉度
+# 代理线路不安全时建议使用这个选项。
+# 当信誉度低于 0 时将不会通过这个线路建立明文协议(http、ftp、stmp等)的连接。
+# 各协议需要的信誉度：https://github.com/GameXG/TcpRoute2/blob/master/netchan/dialchan_filter.go#L19
+# 默认值 0
+#
+#
+# Sleep=80
+# 使用本线路前等待的时间(单位毫秒)
+# 主要目的是降低上游代理的负担。
+# 建议直连线路设置为 0 ，代理线路设置为 80(毫秒) 。
+# 国内 baidu、qq tcping一般是30ms，这里设置为80ms(0.08秒)，
+# 可以使得大部分国内站点不会尝试通过代理访问，降低上游代理的负担。
+# 0.08秒的延迟很低，并且建立连接后会缓存最快连接记录，不会再次延迟，所以不建议删除。
+# 默认值 0
+#
+#
+# CorrectDelay=0
+# 修正延迟
+# ss 协议缺陷，ss 协议并不会报告是否连接到了目标网站，所以无法获得真实的建立到到目标网站的耗时。
+# 无法获得准确的到目标网站的耗时将使得 tcpping 策略无法准确的评估各个线路的速度，所以增加了这个选项用来手工修正。
+# tcpping 策略评估最快建立连接的线路时会以 “建立连接的实际耗时 + CorrectDelay” 进行评估，选出最快建立连接的线路。
+# 非 ss 协议不用设置，ss 协议建议设置为50-100。
+#
+#
+######
+# 域名白名单
+######
+# 当前线路的域名白名单（线路级别），白名单内的域名将只从当前线路转发。
+# 当一个域名同时存在多个线路白名单内时，将会同时从多个线路尝试建立连接。
+# 单个线路可以配置多个白名单，每个白名单一个 [[UpStreams.Whitelist]] 即可。
+# 当不存在 [[UpStreams.Whitelist]] 项目时即表示不配置白名单。
+#
+# [[UpStreams.Whitelist]]
+#
+# Path="direct.txt"
+# 允许本地文件及 http 、https 白名单文件。
+# 本地路径是相对路径时，实际路径是相对于 config.toml 文件所在目录。TcpRoute 会检测 hosts 文件修改并自动重新载入。
+# http、https 域名文件将按 UpdateInterval 间隔定期更新。
+# 不允许单个 [[UpStreams.Whitelist]] 下面出现多个 Path 指定多个白名单文件。
+# 多个白名单需要分别放到不同的 [[UpStreams.Whitelist]] 下面。
+# 默认值：必填
+#
+# Path="https://raw.githubusercontent.com/renzhn/MEOW/master/doc/sample-config/direct"
+# 感谢 renzhn MEOW 维护的境内网站白名单
+#
+# Path="https://raw.githubusercontent.com/GameXG/TcpRoute2/master/direct.txt"
+# 感谢 puteulanus 整理的 unblock youku 最小国内网站白名单。
+#
+#
+# UpdateInterval="24h"
+# 网络 hosts 文件更新间隔
+# 最小有效值 1 分钟, 格式为："1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+# 默认值： "24h"
+#
+#
+# Type="suffix"
+# 域名类型
+# 指定域名文件的匹配类型
+# base 完整匹配，默认值。即 www.abc.com 只匹配 www.abc.com ，不匹配 aaa.www.abc.com 。
+# suffix 后缀匹配。即 abc.com 匹配 abc.com、www.abc.com、aaa.www.abc.com，不匹配 aaaabc.com。
+# pan 泛解析匹配。即 *.abc.com 匹配 www.abc.com 、aaa.www.abc.com。不匹配 .abc.com。?.abc.com 匹配 a.abc.com。
+# regex 正则匹配。即 ^.+?.com$ 匹配 www.abc.com 、aaa.www.abc.com。注意：完整匹配时不要忘记 ^$ 。
+# 默认值："base"
+#
+######
+# 域名黑名单
+######
+# 同域名白名单
+# [[UpStreams.Whitelist]]
+# 同白名单。
+#
+# Path="proxy.txt"
+#
+# Path="https://raw.githubusercontent.com/renzhn/MEOW/master/doc/sample-config/proxy"
+# 感谢 renzhn MEOW 维护的网站黑名单
+#
+# UpdateInterval="24h"
+# Type="suffix"
+
+
+# 直连线路例子：
+[[UpStreams]]
+Name="direct"
+ProxyUrl="direct://0.0.0.0:0000"
+DnsResolve=true
+# DnsResolve 表示是否执行本地dns解析，直连线路建立指定为 true。
+
+[[UpStreams.Whitelist]]
+Path="https://raw.githubusercontent.com/GameXG/TcpRoute2/master/direct.txt"
+# 感谢 puteulanus 整理的 unblock youku 最小国内网站白名单。
+UpdateInterval="24h"
+Type="suffix"
+
+# 代理线路例子：
+[[UpStreams]]
+Name="proxy1"
+ProxyUrl="socks5://123.123.123.123:5050"
+Credit=0
+# Credit 表示代理信誉度，低于0的将不会通过当前线路转发明文协议(http、ftp等)的请求。
+Sleep=80
+# Sleep表示使用本线路前等待的时间，单位毫秒。
+CorrectDelay=0
+# CorrectDelay 表示当前线路修正延迟，ss 协议建议设置为 50-100 之间的值，非 ss 协议代理设置为 0。
+
+
+####################
+# Hosts 功能
+####################
+# 独立与操作系统的 hosts，只对于代理生效。
+# 允许通过多个 [[hosts]] 项来同时使用多个 hosts 文件 。
+#
+# [[Hosts]]
+#
+# Path="hosts/racaljk_hosts.txt"
+# hosts 路径，同域名白名单，允许本地、http、https文件。
+# 默认值：必填
+#
+# Path="https://raw.githubusercontent.com/racaljk/hosts/master/hosts"
+# 感谢 https://github.com/racaljk/hosts 项目维护 hosts
+#
+#
+# Type="base"
+# hosts 域名类型，同域名白名单。标准的 hosts 文件都是 base 类型。
+# 默认值："base"
+#
+#
+# UpdateInterval="24h"
+# 网络 hosts 文件更新间隔
+# 最小有效值 1 分钟， 格式："1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+# 默认值："24h"
+#
+#
+# Credit=-100
+# hosts 信誉度
+# 同线路信誉信誉度，对于小于 0 的 hosts文件将只用于 https 等自带加密的协议。
+# 默认值：0
+
+# 一个例子
+[[Hosts]]
+Path="https://raw.githubusercontent.com/racaljk/hosts/master/hosts"
+# 感谢 https://github.com/racaljk/hosts 项目维护 hosts
+Credit=-100
+
+
+####################
 # 客户端dns解析纠正功能
-# 当客户端进行了本地dns解析是本功能可以强制转换为代理进行dns解析
-# 主要用来配合 redsocks、Proxifier 实现全局代理时 应用程序会进行本地dns解析，启用这个功能将强制为代理进行dns解析。
+####################
+# 当浏览器等客户端进行了本地dns解析时本功能可以强制转换为 TcpRoute 进行dns解析。
+# 当使用 redsocks、Proxifier 实现全局代理时，应用程序会进行本地dns解析，启用这个功能将强制为代理进行dns解析。
 # 部分应用可能也会进行本地dns解析,开启这个功能将避免应用程序本地dns解析时无法优化访问的问题。
+# chrome 默认是远端dns解析，这个选项不会起作用。
+# firefox 很早之前默认是本地 dns 解析，不过可以修改为远端dns解析。目前是什么情况就不知道了。
 #
 # 例子：
 # PreHttpPorts=[80,]
@@ -19,100 +247,3 @@ addr="127.0.0.1:7070"
 # PreHttpPorts=[0,]
 # PreHttpsPorts=[0,]
 # 关闭这个功能
-
-# 可以使用的线路列表
-# 连接网络时会自动选择最快的线路。
-# 注意，直连线路也需要提供，否则不会通过直连访问网络。
-
-[[UpStreams]]
-Name="direct"
-ProxyUrl="direct://0.0.0.0:0000"
-# 是否执行本地dns解析
-DnsResolve=true
-
-# 白名单 域名
-# 允许多份。
-[[UpStreams.Whitelist]]
-# 允许本地文件及 http 、https文件。
-# 本地文件是相对路径时是相对于 config.toml 文件所在目录。会检测hosts文件修改并自动重新载入。
-# 为了性能，不建议将 hosts 文件和日志等经常修改的文件放在同一目录。
-# http、https 按 UpdateInterval 间隔更新。
-# 感谢 renzhn MEOW 维护的境内网站白名单
-#Path="https://raw.githubusercontent.com/renzhn/MEOW/master/doc/sample-config/direct"
-# 感谢 puteulanus 整理的 unblock youku 的最小国内网站白名单。
-Path="https://raw.githubusercontent.com/GameXG/TcpRoute2/master/direct.txt"
-# 网络 hosts 文件更新间隔
-# 最小有效值 1 分钟
-# 格式 "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-UpdateInterval="24h"
-# 域名类型
-# base 完整匹配，默认值。即 www.abc.com 只匹配 www.abc.com ，不匹配 aaa.www.abc.com 。
-# suffix 后缀匹配。即 abc.com 匹配 abc.com、www.abc.com、aaa.www.abc.com，不匹配 aaaabc.com。
-# pan 泛解析匹配。即 *.abc.com 匹配 www.abc.com 、aaa.www.abc.com。不匹配 .abc.com。?.abc.com 匹配 a.abc.com。
-# regex 正则匹配。即 ^.+?.com$ 匹配 www.abc.com 、aaa.www.abc.com。注意：完整匹配时不要忘记 ^$ 。
-Type="suffix"
-
-# 黑名单
-#[[UpStreams.Blacklist]]
-#Path="https://raw.githubusercontent.com/renzhn/MEOW/master/doc/sample-config/proxy"
-#UpdateInterval="24h"
-#Type="Suffix"
-
-[[UpStreams]]
-Name="https-proxy.com"
-# 代理地址
-# 通过 https://github.com/GameXG/ProxyClient 实现的代理功能
-# 目前支持以下格式
-# http 代理 http://123.123.123.123:8088
-# https 代理 https://123.123.123.123:8088
-# socks4 代理 socks4://123.123.123.123:5050  socks4 协议不支持远端 dns 解析
-# socks4a 代理 socks4a://123.123.123.123:5050
-# socks5 代理 socks5://123.123.123.123:5050?upProxy=http://145.2.1.3:8080
-# ss 代理 ss://method:passowd@123.123.123:5050
-# 直连 direct://0.0.0.0:0000/?LocalAddr=123.123.123.123:0
-ProxyUrl="https://www.proxy.com:443"
-DnsResolve=false
-
-# 线路的信誉度，不会通过信誉度低于0的代理建立明文协议的连接(http、ftp、stmp等)
-Credit=0
-
-# 使用本线路前等待的时间(单位毫秒)
-# 国内 baidu、qq tcping一般是30ms，这里设置为80ms(0.08秒)。
-# 可以使得大部分国内站点不会尝试通过代理访问，降低上游代理的负担。
-# 0.08秒的延迟很低，并且建立连接后会缓存最快连接记录，不会再次延迟，所以不建议删除。
-Sleep=80
-
-# 修正延迟
-# ss 协议并不会报告是否连接到了目标网站，所以无法获得真实的到目标网站的 tcpping。
-# 目前只能通过 ss 服务器 tcpping + CorrectDelay 来估算。
-# 非 ss 协议不用设置，ss 协议建议设置为50-100.
-CorrectDelay=0
-
-
-# hosts 功能
-# 这个是独立与操作系统的 hosts，只对于代理生效。
-# 允许通过多个 [[hosts]] 项来同时使用多个 hosts 文件 。
-[[Hosts]]
-# hosts 路径
-# 允许本地文件及 http 、https文件。
-# 本地文件是相对路径时是相对于 config.toml 文件所在目录。会检测hosts文件修改并自动重新载入。
-# 为了性能，不建议将 hosts 文件和日志等经常修改的文件放在同一目录。
-# http、https 按 UpdateInterval 间隔更新。
-#Path="hosts/racaljk_hosts.txt"
-#Path="http://www.abc.com/hosts"
-# 感谢 https://github.com/racaljk/hosts 项目维护 hosts
-Path="https://raw.githubusercontent.com/racaljk/hosts/master/hosts"
-# hosts 域名类型，标准的 hosts 文件都是 base 类型。
-# base 完整匹配，默认值。即 www.abc.com 只匹配 www.abc.com ，不匹配 aaa.www.abc.com 。
-# suffix 后缀匹配。即 abc.com 匹配 abc.com、www.abc.com、aaa.www.abc.com，不匹配 aaaabc.com。
-# pan 泛解析匹配。即 *.abc.com 匹配 www.abc.com 、aaa.www.abc.com。不匹配 .abc.com。?.abc.com 匹配 a.abc.com。
-# regex 正则匹配。即 ^.+?.com$ 匹配 www.abc.com 、aaa.www.abc.com。注意：完整匹配时不要忘记 ^$ 。
-Type="base"
-# 网络 hosts 文件更新间隔
-# 最小有效值 1 分钟
-# 格式 "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
-UpdateInterval="24h"
-# dns 信誉
-# 类似于线路信誉，对于小于0的 dns 解析结果将只用于 https 等自带加密的协议。
-Credit=-100
-
