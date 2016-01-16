@@ -11,7 +11,9 @@
 
 ## 安装
 
-在 [releases](https://github.com/GameXG/TcpRoute2/releases) 页面有二进制发布的可执行文件。根据系统下载对应的文件，并在同一目录创建 config.toml 配置文件即可。
+在 [releases](https://github.com/GameXG/TcpRoute2/releases) 有各个系统的 zip 包。根据系统下载对应的 zip 文件。解压后复制 config.toml.example 为 config.toml ，并根据 toml 内说明配置好上游代理即可。
+
+Windows 下有图形界面，TcpRoute2-windows-gui-386.zip、TcpRoute2-windows-gui-amd64.zip 即带图形界面的版本。
 
 ## 配置
 
