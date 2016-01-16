@@ -47,6 +47,16 @@ func main() {
 		log.Fatalf("无法打开配置文件(%v)，错误：%v", config_path, err)
 	}
 
+	// 解决 Near line 0 (last key parsed ''): Bare keys cannot contain '\ufeff'. 错误。
+	buf := make([]byte, 3)
+	if _, err := io.ReadFull(configFile, buf); err != nil {
+		log.Fatalf("读取配置文件(%v)错误：%v", config_path, err)
+	}
+	// https://zh.wikipedia.org/wiki/%E4%BD%8D%E5%85%83%E7%B5%84%E9%A0%86%E5%BA%8F%E8%A8%98%E8%99%9F
+	if bytes.Equal(buf, []byte{0xEF, 0xBB, 0xBF}) == false {
+		configFile.Seek(0, 0)
+	}
+
 	// 读取配置
 	serverConfig := ServerConfig{}
 	_, err = toml.DecodeReader(configFile, &serverConfig)
