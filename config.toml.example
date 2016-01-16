@@ -37,7 +37,10 @@ DnsResolve=true
 # 本地文件是相对路径时是相对于 config.toml 文件所在目录。会检测hosts文件修改并自动重新载入。
 # 为了性能，不建议将 hosts 文件和日志等经常修改的文件放在同一目录。
 # http、https 按 UpdateInterval 间隔更新。
-Path="https://raw.githubusercontent.com/renzhn/MEOW/master/doc/sample-config/direct"
+# 感谢 renzhn MEOW 维护的境内网站白名单
+#Path="https://raw.githubusercontent.com/renzhn/MEOW/master/doc/sample-config/direct"
+# 感谢 puteulanus 整理的 unblock youku 的最小国内网站白名单。
+Path="https://raw.githubusercontent.com/GameXG/TcpRoute2/master/direct.txt"
 # 网络 hosts 文件更新间隔
 # 最小有效值 1 分钟
 # 格式 "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
