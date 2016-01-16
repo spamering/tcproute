@@ -30,8 +30,8 @@ func main() {
 	config_path_flag := flag.String("config", "config.toml", "配置文件路径")
 	flag.Parse()
 
+	fmt.Println("TcpRoute2 version", version)
 	if *printVer {
-		fmt.Println("TcpRoute2 version", version)
 		return
 	}
 
