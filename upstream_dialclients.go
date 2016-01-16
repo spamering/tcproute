@@ -119,7 +119,7 @@ func (d*DialClients)Config(config*ConfigDialClients) (rerr error) {
 			for _, f := range clientList {
 				UpdateInterval, err := time.ParseDuration(f.UpdateInterval)
 				if err != nil {
-					return err
+					return fmt.Errorf("UpdateInterval 时间无法解析，当前内容：%v，错误：%v", f.UpdateInterval, err)
 				}
 
 
