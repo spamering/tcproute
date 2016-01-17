@@ -194,8 +194,10 @@ addr="127.0.0.1:7070"
 Name="direct"
 ProxyUrl="direct://0.0.0.0:0000"
 DnsResolve=true
-# DnsResolve 表示是否执行本地dns解析，直连线路建立指定为 true。
+# DnsResolve 表示是否执行本地dns解析，直连线路建议指定为 true。
 
+# 直连线路域名白名单
+# 各个线路的白名单、黑名单是独立的，可以通过多个 [[UpStreams.Whitelist]] 指定多个白名单。
 [[UpStreams.Whitelist]]
 Path="https://raw.githubusercontent.com/GameXG/TcpRoute2/master/direct.txt"
 # 感谢 puteulanus 整理的 unblock youku 最小国内网站白名单。
@@ -274,6 +276,7 @@ Credit=-100
 # PreHttpPorts=[0,]
 # PreHttpsPorts=[0,]
 # 关闭这个功能
+
 
 
 ```
