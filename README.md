@@ -3,7 +3,9 @@
 [![Build Status](https://travis-ci.org/GameXG/TcpRoute2.svg)](https://travis-ci.org/GameXG/TcpRoute2) [![release](https://img.shields.io/github/release/gamexg/tcproute2.svg)](https://github.com/GameXG/TcpRoute2/releases) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/GameXG/TcpRoute2/master/LICENSE)  [![platform](https://img.shields.io/badge/platform-%20windows%20%7C%20linux%20%7C%20freebsd%20%7C%20darwin%20-yellow.svg)](https://github.com/GameXG/TcpRoute2/releases)
 
 
-[TcpRoute](https://github.com/GameXG/TcpRoute), TCP 层的路由器。对于 TCP 连接自动从多个线路(允许任意嵌套)、多个域名解析结果中选择最优线路。TcpRoute2 是 golang 重写的版本。
+TcpRoute , TCP 层的路由器。对于 TCP 连接自动从多个线路(允许任意嵌套)、多个域名解析结果中选择最优线路。
+
+TcpRoute 使用激进的选路策略，对 DNS 解析获得的多个IP同时尝试连接，同时使用多个线路(代理)进行连接，最终使用最快建立的连接。支持 TcpRoute 级别 Hosts 文件，支持黑白名单。提供代理、hosts 信誉度功能，只通过不安全的代理转发 https 等加密连接，提高安全性。当配合 redsocks、Proxifier 作为全局代理时可以启动“强制TcpRoute Dns解析”，强制将浏览器本地 DNS 解析改为代理服务器进行DNS解析来更好的优化网络连接，避免 Dns 污染造成的网络故障。
 
 通过 socks5 代理协议对外提供服务。
 
