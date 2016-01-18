@@ -145,18 +145,20 @@ func (u*UFile)down(f*uFile) (rerr error) {
 			rerr = err
 			res.Err = err
 		} else if r.StatusCode != 200 {
-			rerr = fmt.Errorf("服务器错误，返回代码：%v", r.StatusCode)
+			rerr = fmt.Errorf("下载(%v)失败，服务器返回(%v)：%v", r.StatusCode, r.Status)
 			res.Err = rerr
 		} else {
 			res.Rc = r.Body
 		}
 	}
 
-	func() {
-		u.rwm.Lock()
-		defer u.rwm.Unlock()
-		f.utime = now.Add(f.updateInterval)
-	}()
+	if res.Err == nil {
+		func() {
+			u.rwm.Lock()
+			defer u.rwm.Unlock()
+			f.utime = now.Add(f.updateInterval)
+		}()
+	}
 
 	func() {
 		defer func() {_ = recover()}()
