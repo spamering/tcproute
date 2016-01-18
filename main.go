@@ -87,12 +87,11 @@ func main() {
 	}
 
 	for _, v := range serverConfig.UpStreams {
+		if v.ProxyUrl == "" {
+			v.ProxyUrl="direct://0.0.0.0:0000"
+		}
 		if v.Name == "" {
 			v.Name = v.ProxyUrl
-		}
-		if v.ProxyUrl == "" {
-			log.Println("[[UpStreams]] ProxyUrl选项 不允许为空。")
-			return
 		}
 		wbListFunc := func(list    []*ConfigDialClientWBList) error {
 			for _, v := range list {
