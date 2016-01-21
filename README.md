@@ -99,6 +99,11 @@ addr="127.0.0.1:7070"
 #
 # 直连 direct://0.0.0.0:0000
 #     可选参数： LocalAddr=0.0.0.0:0 表示tcp连接绑定的本地ip及端口，默认值 0.0.0.0:0。
+#     可选参数： SplitHttp=false true 表示拆分 http 请求(分多个tcp包发送)，可以解决简单的运营商 http 劫持。默认值：false 。
+#              原理是：当发现目标地址为 80 端口，发送的内容包含 GET、POST、HTTP、HOST 等关键字时，会将关键字拆分到两个包在发送出去。
+#              注意： Web 防火墙类软件、设备可能会重组 HTTP 包，造成拆分无效。目前已知 ESET Smart Security 会造成这个功能无效，即使暂停防火墙也一样无效。
+#              G|ET /pa|th H|TTTP/1.0
+#              HO|ST:www.aa|dd.com
 #
 #
 # DnsResolve=true
