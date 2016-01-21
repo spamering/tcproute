@@ -14,7 +14,7 @@ import (
 	"bytes"
 )
 
-const version = "0.5.4"
+const version = "0.5.6"
 
 type ServerConfig struct {
 	Addr          string `default:"127.0.0.1:7070"`
