@@ -14,7 +14,7 @@ namespace TcpRoute2Windows
 {
     public partial class Form1 : Form
     {
-        bool autoRestart = false; // 主要是防止用户手动关闭也会自动重启
+        bool autoRestart = true; // 主要是防止用户手动关闭也会自动重启
         int errExit = 0;
 
         public Form1()
