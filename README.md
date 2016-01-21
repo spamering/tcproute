@@ -7,6 +7,8 @@ TcpRoute , TCP 层的路由器。对于 TCP 连接自动从多个线路(允许�
 
 TcpRoute 使用激进的选路策略，对 DNS 解析获得的多个IP同时尝试连接，同时使用多个线路(代理)进行连接，最终使用最快建立的连接。支持 TcpRoute 级别 Hosts 文件，支持黑白名单。提供代理、hosts 信誉度功能，只通过不安全的代理转发 https 等加密连接，提高安全性。当配合 redsocks、Proxifier 作为全局代理时可以启动“强制TcpRoute Dns解析”，强制将浏览器本地 DNS 解析改为代理服务器进行DNS解析来更好的优化网络连接，避免 Dns 污染造成的网络故障。
 
+最近增加了简易 http 反劫持，能应付一般的运营商http劫持,默认关闭，需要手工开启。
+
 通过 socks5 代理协议对外提供服务。
 
 代理功能拆分成了独立的库，详细代理url格式及选项请参见 [ProxyClient](https://github.com/GameXG/ProxyClient)，目前支持直连、socks4、socks4a、socks5、http、https、ss 代理线路。其中 socks5 支持用户名、密码认证，http、https 支持用户名、密码基本认证。
@@ -322,6 +324,15 @@ redsocks、Proxifier 全局代理及部分应用会执行本地DNS解析，这�
 黑白名单是线路级别的，而不是全局的，每个线路都有自己的黑白名单。
 
 感谢 https://github.com/renzhn/MEOW 维护了国内域名白名单。
+
+## 防运营商 HTTP 劫持功能
+
+目前只是通过拆分 http 请求到多个 tcp 包来实现防止http劫持功能，只能应付简单的http劫持。
+通过 SplitHttp 选项开启，默认关闭。
+更复杂的 ttl 反劫持功能比较麻烦，还未完成。
+注意：部分杀毒软件、防火墙会重组 http 请求tcp包，造成这个功能无效。
+
+实现原理：当目标端口是80时，发出的请求一旦包含 GET、POST、HTTP、HOST则会被拆分到多个TCP包发送。
 
 ## 具体细节
 * 对 DNS 解析获得的多个IP同时尝试连接，最终使用最快建立的连接。
