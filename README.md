@@ -44,6 +44,34 @@ addr="127.0.0.1:7070"
 
 
 ####################
+# 客户端dns解析纠正功能
+####################
+# 当发现浏览器等客户端进行了本地dns解析时本功能将强制转换为 TcpRoute 进行dns解析。
+# 使用 redsocks、Proxifier 实现全局代理时，应用程序会进行本地dns解析，启用这个功能将强制为代理进行dns解析。
+# 开启这个功能将避免应用程序本地dns解析时无法避免 dns 污染的问题，同时代理负责DNS解析也能更好的优化网络访问。
+#
+# chrome 默认是远端dns解析，当不使用 redsocks、Proxifier 时不需要这个功能。
+# firefox 很早之前默认是本地 dns 解析，不过可以修改为远端dns解析。目前是什么情况就不知道了。
+#
+# https 协议下 TcpRoute 是通过 SNI 功能来获得的目标网站域名。
+# 因为 WinXP 系统下 IE 所有版本都不支持 SNI 功能，所以 windows xp IE 下 https 强制远端解析功能无效。
+#
+# 例子：
+# PreHttpPorts=[80,]
+# PreHttpsPorts=[443,]
+# 这个是默认值，对 80 端口的 http 请求启用，对 443 端口的 tls 连接启用。
+#
+# PreHttpPorts=[0,]
+# PreHttpsPorts=[0,]
+# 关闭这个功能
+#
+# 原理：
+# TcpRoute 接收到目的地址是域名的请求将不执行“客户端dns解析纠正功能”，
+# 但当目的地址是 ip 时，将会读取客户端发出的请求，http 读取 hosts 字段获得域名，https 通过 SNI 功能获得域名。
+# 之后将目标网站ip替换为域名，再执行转发操作。
+
+
+####################
 # 线路
 ####################
 #
@@ -107,7 +135,6 @@ addr="127.0.0.1:7070"
 #              G|ET /pa|th H|TTTP/1.0
 #              HO|ST:www.aa|dd.com
 #     可选参数： sleep=0  建立连接后延迟多少毫秒发送数据，配合 ttl 反劫持系统时建议设置为10置50。默认值 0 。
-#
 #
 # DnsResolve=true
 # 是否执行本地dns解析,只建议直连、socks4 线路设置为 true 。
@@ -270,33 +297,6 @@ Path="https://raw.githubusercontent.com/racaljk/hosts/master/hosts"
 # 感谢 https://github.com/racaljk/hosts 项目维护 hosts
 Credit=-100
 
-
-####################
-# 客户端dns解析纠正功能
-####################
-# 当发现浏览器等客户端进行了本地dns解析时本功能将强制转换为 TcpRoute 进行dns解析。
-# 使用 redsocks、Proxifier 实现全局代理时，应用程序会进行本地dns解析，启用这个功能将强制为代理进行dns解析。
-# 开启这个功能将避免应用程序本地dns解析时无法避免 dns 污染的问题，同时代理负责DNS解析也能更好的优化网络访问。
-#
-# chrome 默认是远端dns解析，当不使用 redsocks、Proxifier 时不需要这个功能。
-# firefox 很早之前默认是本地 dns 解析，不过可以修改为远端dns解析。目前是什么情况就不知道了。
-#
-# https 协议下 TcpRoute 是通过 SNI 功能来获得的目标网站域名。
-# 因为 WinXP 系统下 IE 所有版本都不支持 SNI 功能，所以 windows xp IE 下 https 强制远端解析功能无效。
-#
-# 例子：
-# PreHttpPorts=[80,]
-# PreHttpsPorts=[443,]
-# 这个是默认值，对 80 端口的 http 请求启用，对 443 端口的 tls 连接启用。
-#
-# PreHttpPorts=[0,]
-# PreHttpsPorts=[0,]
-# 关闭这个功能
-#
-# 原理：
-# TcpRoute 接收到目的地址是域名的请求将不执行“客户端dns解析纠正功能”，
-# 但当目的地址是 ip 时，将会读取客户端发出的请求，http 读取 hosts 字段获得域名，https 通过 SNI 功能获得域名。
-# 之后将目标网站ip替换为域名，再执行转发操作。
 
 ```
 
