@@ -347,7 +347,7 @@ ttl 反劫持是独立的程序，需要单独启动ttl反劫持程序，并将�
 sleep 的目的是建立连接后不立刻发送数据，而是等待 ttl 反劫持程序发送混淆内容后再发送实际数据。
 一般ttl反劫持程序发送混淆数据的耗时为10-30毫秒，sleep设置为大于这个值即可。
 
-ttl 反劫持程序地址：https://github.com/GameXG/ProxyClient/ttl
+ttl 反劫持程序地址：https://github.com/GameXG/ProxyClient/tree/master/ttl
 
 ## 具体细节
 * 对 DNS 解析获得的多个IP同时尝试连接，最终使用最快建立的连接。
