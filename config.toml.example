@@ -190,7 +190,7 @@ addr="127.0.0.1:7070"
 # 域名黑名单
 ######
 # 同域名白名单
-# [[UpStreams.Whitelist]]
+# [[UpStreams.Blacklist]]
 # 同白名单。
 #
 # Path="proxy.txt"
