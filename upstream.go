@@ -2,6 +2,7 @@ package main
 import (
 	"time"
 	"net"
+	"fmt"
 )
 
 /*
@@ -27,11 +28,16 @@ func (er*UpStreamErrorReportingBase) Report(t ErrConnType) {
 	er.errConnServer.AddErrLog(er.DailName, er.DomainAddr, er.IpAddr, t)
 }
 
+func (er*UpStreamErrorReportingBase) GetInfo() string{
+	return fmt.Sprintf("代理名称:%v, 域名:%v, IP:%v",er.DailName,er.DomainAddr,er.IpAddr)
+}
+
 // dial 提供的错误报告接口
 // 当 dial 调用者认为链接有问题时将调用这个接口向 连接提供者报告错误。
 type UpStreamErrorReporting interface {
 	// 使用者认为连接有问题时调用
 	Report(t ErrConnType)
+	GetInfo() string
 }
 
 

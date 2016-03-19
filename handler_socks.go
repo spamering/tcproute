@@ -239,10 +239,14 @@ func (h*hSocksHandle)handleSocks5() error {
 
 		// 连接建立时间小于60秒，并且未收到任何数据
 		if connTime < 60 * time.Second && lrecv == 0 && lsend > 50 {
+			log.Printf("记录代理转发错误：连接建立时间 %v 小于60秒，已发出 %v 数据，但未收到任何数据。详细信息，%v，错误：%v\r\n",
+				float64(connTime)/float64(time.Second),lsend,oConnErrorReporting.GetInfo(),err)
 			oConnErrorReporting.Report(ErrConnTypeRead0)
 		}
 
 		if connTime < 1 * time.Second && lrecv < 1024 && prot == 443 && lsend > 50 {
+			log.Printf("记录代理转发错误：https 连接建立时间 %v 小于1秒，已发出 %v 字节数据，收到 %v 字节数据。详细信息，%v，错误：%v\r\n",
+				float64(connTime)/float64(time.Second),lsend,lrecv,oConnErrorReporting.GetInfo(),err)
 			oConnErrorReporting.Report(ErrConnTypeRead0)
 		}
 	}
